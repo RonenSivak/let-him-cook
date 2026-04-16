@@ -1,0 +1,46 @@
+{
+  "name": "wixx-internal-engineering",
+  "version": "0.1.0",
+  "description": "Home-local Codex plugin for Wix internal engineering workflows.",
+  "author": {
+    "name": "Ronensi",
+    "email": "ronensi@wix.com",
+    "url": "https://github.com/ronensi"
+  },
+  "homepage": "https://mcp-s-connect.wewix.net/mcp-servers",
+  "repository": "https://github.com/wix-private/mcp-servers",
+  "license": "UNLICENSED",
+  "keywords": [
+    "wix",
+    "internal-engineering",
+    "mcp",
+    "devex",
+    "grafana",
+    "jira",
+    "slack",
+    "incident-response"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "WIXx Internal Engineering",
+    "shortDescription": "Read-only Wix engineering workflows for Codex",
+    "longDescription": "A home-local Codex plugin for Wix internal engineering chores. It adds readiness checks, read-only governance, local runtime artifacts, and peer-reviewed workflows for build triage, investigations, research, and planning.",
+    "developerName": "Ronensi",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://mcp-s-connect.wewix.net/mcp-servers",
+    "privacyPolicyURL": "https://www.wix.com/about/privacy",
+    "termsOfServiceURL": "https://www.wix.com/about/terms-of-use",
+    "defaultPrompt": [
+      "Investigate this failing Wix PR build with DevEx and Octocode.",
+      "Research the internal pattern for this Wix service or API.",
+      "Summarize the incident evidence and get peer review before concluding."
+    ],
+    "brandColor": "#0C6EFC",
+    "composerIcon": "./assets/wixx-icon.svg",
+    "logo": "./assets/wixx-logo.svg"
+  }
+}

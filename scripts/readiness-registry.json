@@ -1,0 +1,87 @@
+{
+  "providerAliases": {
+    "mcp-s": [
+      "devex",
+      "grafana",
+      "root-cause",
+      "docs-schema",
+      "jira",
+      "slack"
+    ],
+    "context7": [
+      "context7"
+    ],
+    "octocode": [
+      "octocode"
+    ]
+  },
+  "workflowRequirements": {
+    "interview": {
+      "mcp": [],
+      "cli": [
+        "codex"
+      ]
+    },
+    "ralplan": {
+      "mcp": [
+        "docs-schema",
+        "octocode"
+      ],
+      "cli": [
+        "codex",
+        "claude"
+      ]
+    },
+    "ralph": {
+      "mcp": [],
+      "cli": [
+        "codex",
+        "claude"
+      ]
+    },
+    "team": {
+      "mcp": [],
+      "cli": [
+        "codex",
+        "claude"
+      ]
+    },
+    "investigate": {
+      "mcp": [
+        "devex",
+        "grafana",
+        "root-cause"
+      ],
+      "cli": [
+        "codex",
+        "claude"
+      ]
+    },
+    "build-fix": {
+      "mcp": [
+        "devex",
+        "octocode"
+      ],
+      "cli": [
+        "codex",
+        "claude"
+      ]
+    },
+    "research": {
+      "mcp": [
+        "docs-schema",
+        "octocode"
+      ],
+      "cli": [
+        "codex"
+      ]
+    },
+    "review": {
+      "mcp": [],
+      "cli": [
+        "codex",
+        "claude"
+      ]
+    }
+  }
+}
