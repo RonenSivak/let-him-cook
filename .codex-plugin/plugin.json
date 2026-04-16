@@ -21,6 +21,7 @@
     "incident-response"
   ],
   "skills": "./skills/",
+  "hooks": "./hooks.json",
   "interface": {
     "displayName": "LHC",
     "shortDescription": "Let Him Cook: read-only Wix engineering workflows for Codex",

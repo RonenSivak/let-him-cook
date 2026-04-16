@@ -29,6 +29,9 @@ const files = [
   }
 ];
 
+const runtimeStatePath = path.join(runtimeRoot, 'state', 'runtime.json');
+const activityLogPath = path.join(runtimeRoot, 'state', 'activity.jsonl');
+
 if (!dryRun) {
   for (const directory of directories) {
     fs.mkdirSync(directory, { recursive: true });
@@ -39,13 +42,35 @@ if (!dryRun) {
       fs.writeFileSync(file.path, file.contents, 'utf8');
     }
   }
+
+  const previousState = fs.existsSync(runtimeStatePath)
+    ? JSON.parse(fs.readFileSync(runtimeStatePath, 'utf8'))
+    : { bootstrapCount: 0 };
+
+  const nextState = {
+    ...previousState,
+    bootstrapCount: (previousState.bootstrapCount || 0) + 1,
+    lastBootstrapAt: new Date().toISOString()
+  };
+
+  fs.writeFileSync(runtimeStatePath, JSON.stringify(nextState, null, 2) + '\n', 'utf8');
+  fs.appendFileSync(
+    activityLogPath,
+    JSON.stringify({
+      type: 'runtime-bootstrap',
+      at: new Date().toISOString()
+    }) + '\n',
+    'utf8'
+  );
 }
 
 const report = {
   runtimeRoot,
   dryRun,
   directories,
-  files: files.map((file) => file.path)
+  files: files.map((file) => file.path),
+  runtimeStatePath,
+  activityLogPath
 };
 
 if (asJson) {

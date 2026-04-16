@@ -16,24 +16,44 @@ Use for production debugging, incident analysis, and request-ID-driven investiga
 
 ## Workflow
 
-1. Run readiness:
+1. Initialize workflow state:
+
+```bash
+node ../../scripts/runtime-touch.js --workflow investigate --source workflow --phase starting --peer-review-required
+```
+
+2. Run readiness:
 
 ```bash
 node ../../scripts/check-readiness.js investigate
 ```
 
-2. Use:
+3. Use:
    - `root-cause` for request-ID-based RCA
    - `grafana` for logs, metrics, traces, incidents, alerts, and on-call context
    - `devex` for build, release, rollout, and ownership correlation
-3. Ensure local runtime exists before writing artifacts:
+4. Ensure local runtime exists before writing artifacts:
 
 ```bash
 node ../../scripts/ensure-runtime.js
 ```
 
-4. Save the investigation summary as a local artifact.
-5. Get counterpart review before presenting the final incident conclusion.
+5. Save the investigation summary as a local artifact.
+6. Get counterpart review before presenting the final incident conclusion.
+
+## Parallel Evidence Guidance
+
+If the investigation cleanly decomposes, use native subagents for independent lanes such as:
+
+- request-ID root cause analysis
+- logs and metrics interpretation
+- build, rollout, and ownership correlation
+
+Keep these steps with the coordinating agent:
+
+- deciding which evidence lanes matter
+- reconciling conflicts across logs, metrics, and release data
+- writing the final incident conclusion
 
 ## Guardrails
 

@@ -42,6 +42,8 @@ The plugin uses `~/.lhc/` for local runtime state and artifacts:
 - `~/.lhc/project-memory.json`
 - `~/.lhc/readiness/`
 
+The runtime is bootstrapped automatically on first tool use through a plugin hook, and each major workflow initializes per-workflow state and context snapshots under `~/.lhc/state/sessions/`.
+
 ## Install
 
 Use the official personal-plugin layout from the Codex plugin docs.
@@ -69,6 +71,7 @@ Use the official personal-plugin layout from the Codex plugin docs.
 
 - `scripts/check-readiness.js`
 - `scripts/ensure-runtime.js`
+- `scripts/runtime-touch.js`
 - `scripts/write-artifact.js`
 - `scripts/peer-review.sh`
 

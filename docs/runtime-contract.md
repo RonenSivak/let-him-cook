@@ -11,6 +11,8 @@
 - `~/.lhc/notepad.md`
 - `~/.lhc/project-memory.json`
 - `~/.lhc/readiness/`
+- `~/.lhc/state/runtime.json`
+- `~/.lhc/state/activity.jsonl`
 
 ## Session Workflow State
 
@@ -31,6 +33,25 @@ Minimum fields:
 - `context_snapshot_path`
 - `peer_review_required`
 - `peer_review_status`
+
+## Bootstrap Ledger
+
+The runtime also keeps a lightweight ledger:
+
+- `runtime.json`
+  - bootstrap counts
+  - last bootstrap time
+  - last workflow start
+- `activity.jsonl`
+  - append-only runtime events for hook boots and workflow starts
+
+## Bootstrap Rules
+
+- On first tool use after plugin activation, the hook should ensure that `~/.lhc/` exists.
+- On every major workflow start, the workflow should create or refresh:
+  - a workflow state JSON file
+  - a context snapshot
+  - an activity entry in `activity.jsonl`
 
 ## Artifact Contract
 

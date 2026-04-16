@@ -15,6 +15,12 @@ Use when the task naturally splits into parallel, bounded lanes.
 
 ## Suggested Lane Shapes
 
+Initialize workflow state before parallel work:
+
+```bash
+node ../../scripts/runtime-touch.js --workflow team --source workflow --phase starting --peer-review-required
+```
+
 - implementation lane
 - evidence and verification lane
 - docs and repo research lane

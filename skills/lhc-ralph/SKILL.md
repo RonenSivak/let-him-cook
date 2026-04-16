@@ -16,16 +16,22 @@ Use when the task needs persistence, verification, and a real completion gate.
 
 ## Workflow
 
-1. Run readiness for the underlying task lane if it has not already been checked.
-2. Ensure local runtime exists:
+1. Initialize workflow state:
+
+```bash
+node ../../scripts/runtime-touch.js --workflow ralph --source workflow --phase starting --peer-review-required
+```
+
+2. Run readiness for the underlying task lane if it has not already been checked.
+3. Ensure local runtime exists:
 
 ```bash
 node ../../scripts/ensure-runtime.js
 ```
 
-3. Persist workflow state under `~/.lhc/state/sessions/<session-id>/ralph.json`.
-4. Continue working until verification evidence exists.
-5. Do not present code changes, investigation outcomes, or incident conclusions as complete until counterpart review is clean.
+4. Persist workflow state under `~/.lhc/state/sessions/<session-id>/ralph.json`.
+5. Continue working until verification evidence exists.
+6. Do not present code changes, investigation outcomes, or incident conclusions as complete until counterpart review is clean.
 
 ## Default Behavior
 

@@ -15,6 +15,12 @@ Use this workflow for the final review gate.
 
 ## Default Counterpart Route
 
+Initialize workflow state before final review:
+
+```bash
+node ../../scripts/runtime-touch.js --workflow review --source workflow --phase starting --peer-review-required
+```
+
 When running inside Codex, default to Claude for the final review:
 
 ```bash

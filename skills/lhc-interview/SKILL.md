@@ -15,6 +15,12 @@ Use this workflow first for broad or ambiguous Wix internal engineering requests
 
 ## What This Workflow Does
 
+Before substantive work, initialize runtime state:
+
+```bash
+node ../../scripts/runtime-touch.js --workflow interview --source workflow --phase starting
+```
+
 1. Classifies the request into one of:
    - `investigate`
    - `build-fix`
