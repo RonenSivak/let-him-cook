@@ -1,9 +1,9 @@
 ---
-name: wixx-ralph
+name: lhc-ralph
 description: Persistent execution loop for Wix internal engineering work with verification and peer review.
 ---
 
-# WIXx Ralph
+# LHC Ralph
 
 Use when the task needs persistence, verification, and a real completion gate.
 
@@ -23,7 +23,7 @@ Use when the task needs persistence, verification, and a real completion gate.
 node ../../scripts/ensure-runtime.js
 ```
 
-3. Persist workflow state under `~/.wixx/state/sessions/<session-id>/ralph.json`.
+3. Persist workflow state under `~/.lhc/state/sessions/<session-id>/ralph.json`.
 4. Continue working until verification evidence exists.
 5. Do not present code changes, investigation outcomes, or incident conclusions as complete until counterpart review is clean.
 

@@ -1,9 +1,9 @@
 ---
-name: wixx-research
+name: lhc-research
 description: Research internal Wix patterns, docs, APIs, and repos with the right source priority.
 ---
 
-# WIXx Research
+# LHC Research
 
 Use for questions such as:
 

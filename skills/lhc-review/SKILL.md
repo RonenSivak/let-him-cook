@@ -1,9 +1,9 @@
 ---
-name: wixx-review
+name: lhc-review
 description: Run mandatory counterpart-model review for plans, code, investigations, and conclusions.
 ---
 
-# WIXx Review
+# LHC Review
 
 Use this workflow for the final review gate.
 
@@ -36,4 +36,4 @@ sh ../../scripts/peer-review.sh --leader claude --mode analysis --cwd /path/to/r
 
 ## Artifact Rule
 
-Persist important review results as local artifacts under `~/.wixx/artifacts/`.
+Persist important review results as local artifacts under `~/.lhc/artifacts/`.

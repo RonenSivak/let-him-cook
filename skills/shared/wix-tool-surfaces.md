@@ -1,6 +1,6 @@
 # Wix Tool Surfaces
 
-Core surfaces used by WIXx:
+Core surfaces used by LHC:
 
 - `mcp-s`
   - gateway that can satisfy many internal Wix capabilities such as `devex`, `grafana`, `root-cause`, `docs-schema`, `jira`, and `slack`

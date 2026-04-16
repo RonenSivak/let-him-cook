@@ -71,7 +71,7 @@ if [ "$LEADER" = "claude" ]; then
   fi
 
   if [ "$MODE" = "code-review" ] && [ -n "$CWD" ]; then
-    codex review --title "WIXx peer review" "$PROMPT"
+    codex review --title "LHC peer review" "$PROMPT"
     exit 0
   fi
 

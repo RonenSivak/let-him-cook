@@ -13,7 +13,7 @@ function readFlag(name, fallback = '') {
 
 const kind = readFlag('--kind');
 const slug = readFlag('--slug');
-const title = readFlag('--title', 'WIXx Artifact');
+const title = readFlag('--title', 'LHC Artifact');
 const task = readFlag('--task');
 const prompt = readFlag('--prompt');
 const summary = readFlag('--summary');
@@ -27,7 +27,7 @@ if (!kind || !slug) {
 
 const rawOutput = fs.readFileSync(0, 'utf8');
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-const artifactDir = path.join(os.homedir(), '.wixx', 'artifacts');
+const artifactDir = path.join(os.homedir(), '.lhc', 'artifacts');
 const artifactPath = path.join(artifactDir, `${kind}-${slug}-${timestamp}.md`);
 
 fs.mkdirSync(artifactDir, { recursive: true });

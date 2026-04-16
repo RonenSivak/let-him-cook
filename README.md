@@ -1,6 +1,6 @@
-# WIXx Internal Engineering
+# LHC
 
-`wixx-internal-engineering` is a home-local Codex plugin for Wix developers. It is designed for daily internal engineering chores, not as a replacement for Wix MCP servers and not as a write-enabled automation framework.
+`let-him-cook` is a home-local Codex plugin for Wix developers. It is designed for daily internal engineering chores, not as a replacement for Wix MCP servers and not as a write-enabled automation framework.
 
 ## Purpose
 
@@ -33,37 +33,37 @@ The plugin turns the existing Wix tooling surface into a coherent workflow layer
 
 ## Runtime Layout
 
-The plugin uses `~/.wixx/` for local runtime state and artifacts:
+The plugin uses `~/.lhc/` for local runtime state and artifacts:
 
-- `~/.wixx/state/`
-- `~/.wixx/plans/`
-- `~/.wixx/artifacts/`
-- `~/.wixx/notepad.md`
-- `~/.wixx/project-memory.json`
-- `~/.wixx/readiness/`
+- `~/.lhc/state/`
+- `~/.lhc/plans/`
+- `~/.lhc/artifacts/`
+- `~/.lhc/notepad.md`
+- `~/.lhc/project-memory.json`
+- `~/.lhc/readiness/`
 
 ## Install
 
 Use the official personal-plugin layout from the Codex plugin docs.
 
 1. Copy this plugin directory to:
-   - `~/.codex/plugins/wixx-internal-engineering`
+   - `~/.codex/plugins/let-him-cook`
 2. Add an entry to:
    - `~/.agents/plugins/marketplace.json`
 3. Use this source path in the marketplace entry:
-   - `./.codex/plugins/wixx-internal-engineering`
-4. Restart Codex, open the Plugin Directory, and install `WIXx Internal Engineering`.
+   - `./.codex/plugins/let-him-cook`
+4. Restart Codex, open the Plugin Directory, and install `LHC`.
 
 ## Workflow Skills
 
-- `wixx-interview`
-- `wixx-ralplan`
-- `wixx-ralph`
-- `wixx-team`
-- `wixx-investigate`
-- `wixx-build-fix`
-- `wixx-research`
-- `wixx-review`
+- `lhc-interview`
+- `lhc-ralplan`
+- `lhc-ralph`
+- `lhc-team`
+- `lhc-investigate`
+- `lhc-build-fix`
+- `lhc-research`
+- `lhc-review`
 
 ## Helper Scripts
 

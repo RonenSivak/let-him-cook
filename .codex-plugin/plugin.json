@@ -1,5 +1,5 @@
 {
-  "name": "wixx-internal-engineering",
+  "name": "let-him-cook",
   "version": "0.1.0",
   "description": "Home-local Codex plugin for Wix internal engineering workflows.",
   "author": {
@@ -22,9 +22,9 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "WIXx Internal Engineering",
-    "shortDescription": "Read-only Wix engineering workflows for Codex",
-    "longDescription": "A home-local Codex plugin for Wix internal engineering chores. It adds readiness checks, read-only governance, local runtime artifacts, and peer-reviewed workflows for build triage, investigations, research, and planning.",
+    "displayName": "LHC",
+    "shortDescription": "Let Him Cook: read-only Wix engineering workflows for Codex",
+    "longDescription": "Let Him Cook is a home-local Codex plugin for Wix engineering chores. It adds readiness checks, read-only governance, local runtime artifacts, and peer-reviewed workflows for build triage, investigations, research, and planning.",
     "developerName": "Ronensi",
     "category": "Productivity",
     "capabilities": [
@@ -40,7 +40,7 @@
       "Summarize the incident evidence and get peer review before concluding."
     ],
     "brandColor": "#0C6EFC",
-    "composerIcon": "./assets/wixx-icon.svg",
-    "logo": "./assets/wixx-logo.svg"
+    "composerIcon": "./assets/lhc-icon.svg",
+    "logo": "./assets/lhc-logo.svg"
   }
 }

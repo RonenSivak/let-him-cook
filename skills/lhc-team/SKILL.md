@@ -1,9 +1,9 @@
 ---
-name: wixx-team
+name: lhc-team
 description: Coordinate parallel Wix internal engineering lanes with explicit role routing and a final peer-review gate.
 ---
 
-# WIXx Team
+# LHC Team
 
 Use when the task naturally splits into parallel, bounded lanes.
 

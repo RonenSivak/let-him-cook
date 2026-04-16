@@ -1,9 +1,9 @@
 ---
-name: wixx-build-fix
+name: lhc-build-fix
 description: Triage failing Wix builds, PR checks, and release paths using DevEx and repo archaeology.
 ---
 
-# WIXx Build Fix
+# LHC Build Fix
 
 Use for CI failures, PR build failures, release failures, and related triage.
 

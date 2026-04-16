@@ -8,7 +8,7 @@ const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const asJson = args.includes('--json');
 
-const runtimeRoot = path.join(os.homedir(), '.wixx');
+const runtimeRoot = path.join(os.homedir(), '.lhc');
 const directories = [
   runtimeRoot,
   path.join(runtimeRoot, 'state'),
@@ -21,7 +21,7 @@ const directories = [
 const files = [
   {
     path: path.join(runtimeRoot, 'notepad.md'),
-    contents: '# WIXx Notepad\n'
+    contents: '# LHC Notepad\n'
   },
   {
     path: path.join(runtimeRoot, 'project-memory.json'),

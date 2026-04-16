@@ -1,9 +1,9 @@
 ---
-name: wixx-investigate
+name: lhc-investigate
 description: Investigate production issues using Wix operational surfaces while staying read-only by default.
 ---
 
-# WIXx Investigate
+# LHC Investigate
 
 Use for production debugging, incident analysis, and request-ID-driven investigations.
 

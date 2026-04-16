@@ -1,22 +1,22 @@
-# WIXx Runtime Contract
+# LHC Runtime Contract
 
-`wixx-internal-engineering` persists local runtime data under `~/.wixx/`.
+`let-him-cook` persists local runtime data under `~/.lhc/`.
 
 ## Directory Layout
 
-- `~/.wixx/state/`
-- `~/.wixx/state/sessions/<session-id>/`
-- `~/.wixx/plans/`
-- `~/.wixx/artifacts/`
-- `~/.wixx/notepad.md`
-- `~/.wixx/project-memory.json`
-- `~/.wixx/readiness/`
+- `~/.lhc/state/`
+- `~/.lhc/state/sessions/<session-id>/`
+- `~/.lhc/plans/`
+- `~/.lhc/artifacts/`
+- `~/.lhc/notepad.md`
+- `~/.lhc/project-memory.json`
+- `~/.lhc/readiness/`
 
 ## Session Workflow State
 
 Each active workflow may persist a JSON state file under:
 
-- `~/.wixx/state/sessions/<session-id>/<workflow>.json`
+- `~/.lhc/state/sessions/<session-id>/<workflow>.json`
 
 Minimum fields:
 
@@ -34,7 +34,7 @@ Minimum fields:
 
 ## Artifact Contract
 
-Artifacts live under `~/.wixx/artifacts/` and should include:
+Artifacts live under `~/.lhc/artifacts/` and should include:
 
 - original task
 - final prompt or context sent

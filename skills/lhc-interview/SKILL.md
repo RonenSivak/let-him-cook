@@ -1,9 +1,9 @@
 ---
-name: wixx-interview
+name: lhc-interview
 description: Intake and route broad Wix internal engineering requests with readiness gating.
 ---
 
-# WIXx Interview
+# LHC Interview
 
 Use this workflow first for broad or ambiguous Wix internal engineering requests.
 

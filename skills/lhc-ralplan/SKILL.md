@@ -1,9 +1,9 @@
 ---
-name: wixx-ralplan
+name: lhc-ralplan
 description: Plan substantial Wix internal engineering work with readiness checks and mandatory peer review.
 ---
 
-# WIXx RALPlan
+# LHC RALPlan
 
 Use for substantial plans that need internal research, repo context, and a durable local artifact.
 
@@ -33,7 +33,7 @@ node ../../scripts/ensure-runtime.js
    - `docs-schema`
    - `octocode`
    - `devex` when service, rollout, or ownership context matters
-4. Write the plan into `~/.wixx/plans/`.
+4. Write the plan into `~/.lhc/plans/`.
 5. Route the final plan to counterpart review before presenting it as approved.
 
 ## Review Rule

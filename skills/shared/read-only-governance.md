@@ -1,6 +1,6 @@
 # Read-Only Governance
 
-WIXx defaults to `read-only` behavior for external systems.
+LHC defaults to `read-only` behavior for external systems.
 
 Forbidden by default:
 
@@ -17,7 +17,7 @@ Allowed by default:
 
 - read-only inspection of local files
 - local workspace edits
-- local runtime state and artifact writes under `~/.wixx/`
+- local runtime state and artifact writes under `~/.lhc/`
 - read-only external inspection through MCPs and CLIs
 
 Escalation rule:
