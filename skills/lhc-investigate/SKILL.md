@@ -1,11 +1,14 @@
 ---
 name: lhc-investigate
-description: Investigate production issues using Wix operational surfaces while staying read-only by default.
+description: Investigate a Wix production issue using root-cause, grafana, and devex, save the artifact, peer-review, and STOP. Does not implement fixes.
+pipeline: [lhc-investigate, lhc-review]
+next-skill: lhc-review
+handoff: ~/.lhc/artifacts/investigate-*.md
 ---
 
 # LHC Investigate
 
-Use for production debugging, incident analysis, and request-ID-driven investigations.
+Production debugging, incident analysis, request-ID driven RCA. Produces an investigation artifact and stops. Never posts to Slack, mutates Jira, or retriggers builds.
 
 ## Required Reading
 
@@ -14,32 +17,68 @@ Use for production debugging, incident analysis, and request-ID-driven investiga
 - `../shared/peer-review-governance.md`
 - `../shared/wix-tool-surfaces.md`
 
+<Use_When>
+- The user reports a prod issue, failing request, on-call page, or regression.
+- The task is "what caused X" — not "how do I fix X in code".
+- Multiple evidence families (logs, metrics, traces, releases, ownership) need to be correlated.
+</Use_When>
+
+<Do_Not_Use_When>
+- The issue is a failing PR/CI build — use `lhc-build-fix`.
+- The user wants a code change — use `lhc-ralplan` then `lhc-ralph`.
+- The user is asking a "how does X work" question — use `lhc-research`.
+</Do_Not_Use_When>
+
+<Execution_Policy>
+- External systems stay read-only. No Slack posts, no Jira mutations, no Grafana writes, no build retriggers.
+- MUST save the investigation artifact at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md` before stopping.
+- MUST gate the final conclusion on counterpart peer review.
+- MUST NOT implement or recommend code edits. If a code fix is warranted, tell the user to run `/let-him-cook:plan`.
+</Execution_Policy>
+
 ## Workflow
 
-1. Run readiness:
+1. **Initialize workflow state**
 
-```bash
-node ../../scripts/check-readiness.js investigate
-```
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow investigate --source workflow --cwd "$PWD" --task "<user request>" --peer-review-required
+   ```
 
-2. Use:
+2. **Run readiness**
+
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js investigate --json
+   ```
+
+3. **Use primary surfaces**
    - `root-cause` for request-ID-based RCA
-   - `grafana` for logs, metrics, traces, incidents, alerts, and on-call context
+   - `grafana` for logs, metrics, traces, incidents, alerts, on-call context
    - `devex` for build, release, rollout, and ownership correlation
-3. Ensure local runtime exists before writing artifacts:
 
-```bash
-node ../../scripts/ensure-runtime.js
-```
+4. **Ensure runtime exists**
 
-4. Save the investigation summary as a local artifact.
-5. Get counterpart review before presenting the final incident conclusion.
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/ensure-runtime.js >/dev/null
+   ```
 
-## Guardrails
+5. **Dispatch subagents for independent evidence lanes** when the investigation decomposes cleanly:
+   `Task(subagent_type="let-him-cook:incident-investigator", …)`,
+   `Task(subagent_type="let-him-cook:build-release-operator", …)`.
 
-- no Slack posts
-- no Jira mutations
-- no Grafana writes
-- no build retriggers
+6. **Peer review the conclusion**
 
-All external changes stay forbidden unless the user explicitly requests them.
+   ```bash
+   sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader claude --mode investigation --cwd "$PWD" --prompt-file <investigation-summary-path>
+   ```
+
+7. **Save the artifact** to `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md`. Include evidence per surface, correlation, root-cause hypothesis with confidence, owner, peer-review verdict, residual gaps.
+
+8. **Append to notepad** and STOP.
+
+<Final_Checklist>
+- [ ] Evidence gathered from at least one of root-cause / grafana / devex
+- [ ] Artifact saved under `~/.lhc/artifacts/`
+- [ ] Peer-review verdict recorded
+- [ ] No external system was written to
+- [ ] No source file was modified
+</Final_Checklist>

@@ -1,0 +1,24 @@
+{
+  "name": "let-him-cook",
+  "version": "0.1.0",
+  "description": "Home-local Claude Code plugin for Wix internal engineering workflows.",
+  "author": {
+    "name": "Ronensi",
+    "email": "ronensi@wix.com",
+    "url": "https://github.com/ronensi"
+  },
+  "homepage": "https://mcp-s-connect.wewix.net/mcp-servers",
+  "repository": "https://github.com/wix-private/mcp-servers",
+  "license": "UNLICENSED",
+  "keywords": [
+    "wix",
+    "internal-engineering",
+    "mcp",
+    "devex",
+    "grafana",
+    "jira",
+    "slack",
+    "incident-response"
+  ],
+  "skills": "./skills"
+}

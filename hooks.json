@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Write|Edit|Bash|Glob|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ./scripts/pretool-runtime-bootstrap.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

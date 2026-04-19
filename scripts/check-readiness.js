@@ -32,25 +32,50 @@ function commandExists(command) {
   }
 }
 
-function listMcpServers() {
+function parseMcpListOutput(output) {
+  return output
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => line)
+    .filter(
+      (line) => !line.startsWith('WARNING:') && !line.startsWith('Name ') && !line.startsWith('Checking ')
+    )
+    .map((line) => {
+      // Codex format: "name  url..."  (name, then 2+ spaces)
+      const codexMatch = line.match(/^([A-Za-z0-9._-]+)\s{2,}/);
+      if (codexMatch) return codexMatch[1];
+      // Claude Code format: "name: url..." or "plugin:<ns>:<name>: url..." or "claude.ai <name>: url..."
+      const claudeMatch = line.match(/^(.+?):\s/);
+      if (!claudeMatch) return null;
+      const rawName = claudeMatch[1].trim();
+      if (rawName.startsWith('plugin:')) {
+        const parts = rawName.split(':');
+        return parts[parts.length - 1];
+      }
+      // claude.ai built-ins don't participate in LHC readiness aliases
+      if (rawName.startsWith('claude.ai ')) return null;
+      return rawName;
+    })
+    .filter(Boolean);
+}
+
+function listMcpServersFromCli(cli) {
   try {
-    const output = execFileSync('codex', ['mcp', 'list'], {
+    const output = execFileSync(cli, ['mcp', 'list'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe']
     });
-
-    return output
-      .split('\n')
-      .map((line) => line.trimEnd())
-      .filter((line) => line && !line.startsWith('WARNING:') && !line.startsWith('Name '))
-      .map((line) => {
-        const match = line.match(/^([A-Za-z0-9._-]+)\s{2,}/);
-        return match ? match[1] : null;
-      })
-      .filter(Boolean);
-  } catch (error) {
+    return parseMcpListOutput(output);
+  } catch {
     return [];
   }
+}
+
+function listMcpServers() {
+  const codexServers = listMcpServersFromCli('codex');
+  const claudeServers = listMcpServersFromCli('claude');
+  const merged = new Set([...codexServers, ...claudeServers]);
+  return Array.from(merged);
 }
 
 const installedMcpServers = listMcpServers();
@@ -73,18 +98,23 @@ const installChecklist = [];
 for (const name of missingMcp) {
   if (['devex', 'grafana', 'root-cause', 'docs-schema', 'jira', 'slack'].includes(name)) {
     installChecklist.push(
-      `Configure the Wix MCP gateway if it is missing: codex mcp add mcp-s --url https://mcp-s.wewix.net/mcp`
+      'Configure the Wix MCP gateway if it is missing (Codex): codex mcp add mcp-s --url https://mcp-s.wewix.net/mcp'
     );
-    installChecklist.push('If authentication is required after adding it, run: codex mcp login mcp-s');
+    installChecklist.push(
+      'Configure the Wix MCP gateway if it is missing (Claude Code): claude mcp add mcp-s --url https://mcp-s.wewix.net/mcp'
+    );
+    installChecklist.push('If authentication is required after adding it, run: codex mcp login mcp-s (or the Claude equivalent).');
     break;
   }
 
   if (name === 'octocode') {
-    installChecklist.push('Install Octocode MCP if it is missing: codex mcp add octocode -- npx octocode-mcp@latest');
+    installChecklist.push('Install Octocode MCP if it is missing (Codex): codex mcp add octocode -- npx octocode-mcp@latest');
+    installChecklist.push('Install Octocode MCP if it is missing (Claude Code): claude mcp add octocode -- npx octocode-mcp@latest');
   }
 
   if (name === 'context7') {
-    installChecklist.push('Install Context7 MCP if it is missing: codex mcp add context7 -- npx -y @upstash/context7-mcp');
+    installChecklist.push('Install Context7 MCP if it is missing (Codex): codex mcp add context7 -- npx -y @upstash/context7-mcp');
+    installChecklist.push('Install Context7 MCP if it is missing (Claude Code): claude mcp add context7 -- npx -y @upstash/context7-mcp');
   }
 }
 
