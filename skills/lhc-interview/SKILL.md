@@ -1,71 +1,76 @@
 ---
 name: lhc-interview
-description: Classify a broad Wix internal engineering request, run readiness, and route to the right LHC workflow. Does not implement or research.
-pipeline: [lhc-interview]
-next-skill: dynamic
-handoff: ~/.lhc/state/sessions/<session-id>/interview.json
+description: Classifies a vague Wix internal engineering request, runs readiness, and routes to the right LHC skill. Use when the request is ambiguous ("help with this", "what should I do"), or when the user explicitly says "interview" or "help me pick a workflow". Does not implement, research, plan, or investigate.
+when_to_use: The request is ambiguous and could map to multiple LHC workflows. Never runs if the workflow is already obvious.
 ---
 
 # LHC Interview
 
-Intake surface for broad or ambiguous Wix internal engineering requests. This skill classifies, checks readiness, and tells the user which LHC skill to invoke next. It never implements, never investigates, never plans.
+Intake surface for broad or ambiguous Wix internal engineering requests. Classifies, checks readiness, and tells the user which LHC skill to invoke next. Never implements.
 
-## Required Reading
-
+<Required_Reading>
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/wix-tool-surfaces.md`
+</Required_Reading>
 
 <Use_When>
 - The user's request is vague and could map to multiple workflows.
-- You genuinely don't know whether to plan, investigate, research, or triage.
+- You genuinely cannot tell whether to plan, investigate, research, or triage.
 - The user explicitly says "interview" or "help me pick a workflow".
 </Use_When>
 
 <Do_Not_Use_When>
-- The workflow is obvious from the request — go straight to that workflow.
-- The user already named a workflow ("plan this", "research this") — run that workflow directly.
+- The workflow is obvious from the request — go straight to it.
+- The user already named a workflow ("plan this", "research this") — invoke that skill directly.
 </Do_Not_Use_When>
 
 <Execution_Policy>
-- MUST NOT implement, edit source files, or call any skill other than readiness scripts.
+- MUST NOT implement, edit source files, or invoke any skill other than the readiness scripts.
 - MUST produce a one-block classification output and stop.
 - MAY ask at most one clarifying question via `AskUserQuestion` before classifying.
-- If readiness is blocked, MUST print the install checklist and only proceed to the next command if the user explicitly says to continue in degraded mode.
+- If readiness is blocked, MUST print the install checklist. MUST NOT proceed to the next skill unless the user explicitly says to continue in degraded mode in the same turn.
 </Execution_Policy>
 
 ## Workflow
 
 1. **Initialize workflow state**
-
    ```bash
    node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow interview --source workflow --cwd "$PWD" --task "<user request>"
    ```
 
-2. **Classify** the request into one of: `investigate`, `build-fix`, `research`, `ralplan`, `ralph`, `team`, `review`.
+2. **Classify** the request into exactly one of:
 
-3. **Detect context clues** from cwd/repo, PR/build/Jira IDs, service/artifact names.
+   | Workflow | Skill | Use when |
+   |----------|-------|----------|
+   | investigate | `lhc-investigate` | prod issue, logs, metrics, request-ID RCA |
+   | build-fix | `lhc-build-fix` | failing PR build, CI, release, rollout |
+   | research | `lhc-research` | "how does X work at Wix", schema/docs questions |
+   | ralplan | `lhc-ralplan` | substantial change needing an upfront plan |
+   | ralph | `lhc-ralph` | user has a saved plan and wants to implement |
+   | team | `lhc-team` | task splits into independent parallel lanes |
+   | review | `lhc-review` | final peer-review gate on a plan, diff, or conclusion |
+
+3. **Detect context clues** — cwd/repo, PR/build/Jira IDs, service/artifact names in the request.
 
 4. **Run readiness**
-
    ```bash
    node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js <workflow> --json
    ```
 
-5. **Output the hand-off block and STOP**
-
+5. **Output the hand-off block and STOP**:
    ```
    LHC Interview
    - Classified as: <workflow>
    - Readiness: <ready|blocked|degraded>
    - Context clues: <short list>
    - Cwd: <pwd>
-   - Next: invoke the `<skill-name>` skill (e.g. `Skill("let-him-cook:lhc-ralplan")`)
+   - Next: invoke `Skill("let-him-cook:<skill-name>")`
    ```
 
 <Final_Checklist>
 - [ ] Classification recorded in the session state file
 - [ ] Readiness reported honestly (no silent degraded mode)
 - [ ] No source file touched
-- [ ] User told exactly which command to run next
+- [ ] User told exactly which skill to invoke next
 </Final_Checklist>

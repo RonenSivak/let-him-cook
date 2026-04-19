@@ -1,105 +1,92 @@
 ---
 name: lhc-ralph
-description: Persistent execution loop that implements a saved plan from ~/.lhc/plans/ with verification and peer review.
-pipeline: [lhc-ralplan, lhc-ralph, lhc-review]
-next-skill: lhc-review
-handoff: ~/.lhc/artifacts/execute-*.md
+description: Executes a plan saved at ~/.lhc/plans/ with an iterative implement-verify-fix loop, then gates on peer review. Use when a plan file exists and the user says "implement", "execute the plan", "ralph", or "run it". Refuses to run without a plan file.
+when_to_use: The user has a saved plan and wants it implemented end-to-end with verification. Never runs without a plan file under `~/.lhc/plans/`.
 ---
 
 # LHC Ralph
 
-Executes a plan that already exists in `~/.lhc/plans/`. Iterates implement → verify → fix until acceptance criteria pass, then gates on peer review. Refuses to run without a plan file.
+Executes a plan that already exists in `~/.lhc/plans/`. Iterates implement → verify → fix until acceptance criteria pass, then gates on counterpart peer review.
 
-## Required Reading
-
+<Required_Reading>
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
 - `../../docs/runtime-contract.md`
+</Required_Reading>
 
 <Use_When>
-- The user has a saved plan in `~/.lhc/plans/` and wants it implemented.
-- The `lhc-ralplan` skill ran earlier and left a plan in `~/.lhc/plans/`.
+- A plan file exists under `~/.lhc/plans/` and the user wants it implemented.
+- The user explicitly invokes `ralph`, `execute`, `run the plan`, or similar.
 - The task needs verification evidence and a counterpart-review gate before being called done.
 </Use_When>
 
 <Do_Not_Use_When>
-- No plan file exists — run the `lhc-ralplan` skill first.
-- The work is trivial and doesn't need the ralph loop — do it directly.
+- No plan file exists — tell the user to invoke `lhc-ralplan` first.
+- The work is trivial (one-line doc edit, simple rename) and doesn't need the ralph loop.
 - The task is pure research or investigation — use `lhc-research` or `lhc-investigate`.
 </Do_Not_Use_When>
 
 <Execution_Policy>
 - MUST read the plan file and treat it as authoritative. The plan is the spec, not a suggestion.
-- MUST NOT invent a plan inline; if there is no plan file, STOP and instruct the user.
-- MUST persist workflow state under `~/.lhc/state/sessions/<session-id>/ralph.json`.
-- MUST continue iterating until acceptance criteria pass or the user cancels.
+- MUST NOT invent a plan inline. If there is no plan file, STOP and tell the user to invoke `lhc-ralplan` first.
+- MUST persist per-session state under `~/.lhc/state/sessions/<session-id>/ralph.json`.
+- MUST iterate implement → verify → fix until acceptance criteria pass or the loop hits a bound.
 - MUST produce an execution artifact at `~/.lhc/artifacts/execute-<slug>-<UTC-ISO>.md` before declaring success.
 - MUST require peer review before presenting the implementation as complete.
 - External systems stay read-only unless the plan explicitly authorizes a write.
+- MUST NOT silently extend the plan. If the plan is missing a step needed to succeed, stop and surface the gap.
 </Execution_Policy>
 
 ## Workflow
 
 1. **Initialize workflow state**
-
    ```bash
    node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow ralph --source workflow --cwd "$PWD" --task "<plan-path or user request>" --peer-review-required
    ```
 
-2. **Resolve the plan file**
-   - If the user referenced an explicit plan path, use it.
-   - Else pick the newest `~/.lhc/plans/*.md` whose slug matches the user's task tokens.
-   - Else pick the newest `~/.lhc/plans/ralplan-*.md`.
-   - If nothing matches, STOP and tell the user: "No plan found under `~/.lhc/plans/`. Run the `lhc-ralplan` skill first."
+2. **Resolve the plan file** in this order:
+   1. If the caller referenced an explicit plan path, use it.
+   2. Else pick the newest `~/.lhc/plans/*.md` whose slug matches the user's task tokens.
+   3. Else pick the newest `~/.lhc/plans/ralplan-*.md`.
+   4. If nothing matches, STOP: "No plan found under `~/.lhc/plans/`. Invoke `lhc-ralplan` first."
 
-3. **Run readiness and ensure runtime** (if not already done by the command):
-
+3. **Ensure runtime**
    ```bash
    node "$CLAUDE_PLUGIN_ROOT"/scripts/ensure-runtime.js >/dev/null
    ```
 
-4. **Execution loop**
+4. **Execution loop** — for each step in the plan:
+   - Dispatch `Task(subagent_type="let-him-cook:executor", prompt=<step + file anchors + acceptance bits>)` for bounded edits.
+   - Run the verification command(s) from the plan.
+   - If verification fails, dispatch `Task(subagent_type="let-him-cook:debugger", …)` for root cause, then fix via `executor`. Bound to 5 retries per step.
+   - Record results per step.
 
-   For each step in the plan:
-   - implement
-   - run the verification command(s) from the plan
-   - if verification fails, fix and retry (bounded to 5 retries per step)
-   - record results
+5. **Verify against the whole plan** — dispatch `Task(subagent_type="let-him-cook:verifier", …)` to gate each acceptance criterion against fresh evidence.
 
-   Use LHC subagents where appropriate:
-   `Task(subagent_type="let-him-cook:executor", …)` for bounded edits,
-   `Task(subagent_type="let-him-cook:verifier", …)` for the final gate.
-
-5. **Peer review the final diff**
-
+6. **Peer review the final diff**
    ```bash
    sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader claude --mode code-review --cwd "$PWD" --prompt-file <(git diff | head -400)
    ```
 
-   Capture the verdict.
-
-6. **Write the execution artifact**
-
-   Path: `~/.lhc/artifacts/execute-<slug>-<UTC-ISO>.md`. Include:
+7. **Write the execution artifact** at `~/.lhc/artifacts/execute-<slug>-<UTC-ISO>.md`. Include:
    - link to the plan file
-   - files touched
+   - files touched (paths)
    - verification commands run + truncated output
    - peer-review verdict
    - residual gaps
 
-7. **Append to notepad**
-
+8. **Append to notepad**
    ```bash
    printf -- "- %s  ralph  %s  %s  plan=%s  artifact=%s\n" "$(date -u +%FT%TZ)" "<slug>" "$PWD" "<plan-path>" "<artifact-path>" >> ~/.lhc/notepad.md
    ```
 
-8. **Report and STOP**
+9. **Report and STOP.**
 
 <Final_Checklist>
 - [ ] Plan file was read and used as the spec
 - [ ] Every acceptance criterion has a passing verification command
-- [ ] Peer-review verdict is `approved` (or `approved-with-changes` after fixes)
+- [ ] Peer-review verdict is `approved` or `approved-with-changes` after fixes
 - [ ] Execution artifact saved under `~/.lhc/artifacts/`
 - [ ] Notepad entry appended
 - [ ] State file under `~/.lhc/state/sessions/<session-id>/ralph.json` marks completion
