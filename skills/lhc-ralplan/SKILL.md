@@ -35,7 +35,7 @@ Substantial plans that need internal research, repo context, and a durable local
 - MUST NOT edit, create, or delete any file outside of `~/.lhc/`.
 - MUST NOT invoke `lhc-ralph`, `lhc-team`, or any execution skill.
 - MUST route the plan to counterpart review via `scripts/peer-review.sh` before marking it approved.
-- If the user says "just implement it", refuse and tell them to run `/let-him-cook:execute`.
+- If the user says "just implement it", refuse and tell them to invoke the `lhc-ralph` skill after the plan is saved.
 - If required MCPs are missing, hard-stop unless the user explicitly says to continue in degraded mode.
 </Execution_Policy>
 
@@ -104,7 +104,7 @@ Substantial plans that need internal research, repo context, and a durable local
 
 8. **Report and STOP**
 
-   Print the plan path, peer-review verdict, and tell the user to run `/let-him-cook:execute --plan <plan-path>`. Do not implement. Do not invoke `lhc-ralph`.
+   Print the plan path, peer-review verdict, and tell the user to invoke the `lhc-ralph` skill (passing the plan path) when they're ready to execute. Do not implement. Do not invoke `lhc-ralph` from this skill.
 
 <Final_Checklist>
 - [ ] Plan file exists under `~/.lhc/plans/`

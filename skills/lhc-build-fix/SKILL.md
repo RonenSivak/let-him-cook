@@ -63,7 +63,7 @@ CI failures, PR build failures, release failures, rollout anomalies. Classifies 
 5. **Save the triage artifact** at `~/.lhc/artifacts/build-fix-<slug>-<UTC-ISO>.md`.
 
 6. **Route the next action**
-   - code failure: hand off to `/let-him-cook:plan` (do not implement here)
+   - code failure: invoke `Skill("let-him-cook:lhc-ralplan")` to produce a plan (do not implement here)
    - flaky test: open a follow-up for the owning team, STOP
    - release failure: tell the user to route to the release owner, STOP
    - ownership ambiguity: list top candidate owners, STOP

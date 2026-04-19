@@ -8,7 +8,7 @@ handoff: ~/.lhc/state/sessions/<session-id>/interview.json
 
 # LHC Interview
 
-Intake surface for broad or ambiguous Wix internal engineering requests. This skill classifies, checks readiness, and tells the user which `/let-him-cook:*` command to run next. It never implements, never investigates, never plans.
+Intake surface for broad or ambiguous Wix internal engineering requests. This skill classifies, checks readiness, and tells the user which LHC skill to invoke next. It never implements, never investigates, never plans.
 
 ## Required Reading
 
@@ -60,7 +60,7 @@ Intake surface for broad or ambiguous Wix internal engineering requests. This sk
    - Readiness: <ready|blocked|degraded>
    - Context clues: <short list>
    - Cwd: <pwd>
-   - Next: run `/let-him-cook:<command>` "<task>"
+   - Next: invoke the `<skill-name>` skill (e.g. `Skill("let-him-cook:lhc-ralplan")`)
    ```
 
 <Final_Checklist>

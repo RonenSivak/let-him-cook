@@ -23,7 +23,7 @@ Multi-lane orchestration on top of a reviewed plan. Dispatches subagents per lan
 </Use_When>
 
 <Do_Not_Use_When>
-- No plan file exists — run `/let-him-cook:plan` first.
+- No plan file exists — run the `lhc-ralplan` skill first.
 - The task is small and sequential — use `lhc-ralph`.
 - The task is investigation or research — use `lhc-investigate` or `lhc-research`.
 </Do_Not_Use_When>

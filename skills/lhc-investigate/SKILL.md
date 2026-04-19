@@ -33,7 +33,7 @@ Production debugging, incident analysis, request-ID driven RCA. Produces an inve
 - External systems stay read-only. No Slack posts, no Jira mutations, no Grafana writes, no build retriggers.
 - MUST save the investigation artifact at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md` before stopping.
 - MUST gate the final conclusion on counterpart peer review.
-- MUST NOT implement or recommend code edits. If a code fix is warranted, tell the user to run `/let-him-cook:plan`.
+- MUST NOT implement or recommend code edits. If a code fix is warranted, tell the user to invoke the `lhc-ralplan` skill next.
 </Execution_Policy>
 
 ## Workflow

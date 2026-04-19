@@ -33,7 +33,7 @@ handoff: ~/.lhc/artifacts/research-*.md
 - MUST save the research artifact at `~/.lhc/artifacts/research-<slug>-<UTC-ISO>.md`.
 - MUST keep conclusions scoped to evidence actually found.
 - MUST NOT edit repo files.
-- If the research turns into a formal conclusion or a plan, route through `/let-him-cook:review` for counterpart review.
+- If the research turns into a formal conclusion or a plan, route through the `lhc-review` skill for counterpart review.
 </Execution_Policy>
 
 ## Workflow

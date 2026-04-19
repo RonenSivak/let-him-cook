@@ -19,12 +19,12 @@ Executes a plan that already exists in `~/.lhc/plans/`. Iterates implement → v
 
 <Use_When>
 - The user has a saved plan in `~/.lhc/plans/` and wants it implemented.
-- The user ran `/let-him-cook:plan` earlier and is now ready to execute.
+- The `lhc-ralplan` skill ran earlier and left a plan in `~/.lhc/plans/`.
 - The task needs verification evidence and a counterpart-review gate before being called done.
 </Use_When>
 
 <Do_Not_Use_When>
-- No plan file exists — tell the user to run `/let-him-cook:plan` first.
+- No plan file exists — run the `lhc-ralplan` skill first.
 - The work is trivial and doesn't need the ralph loop — do it directly.
 - The task is pure research or investigation — use `lhc-research` or `lhc-investigate`.
 </Do_Not_Use_When>
@@ -48,10 +48,10 @@ Executes a plan that already exists in `~/.lhc/plans/`. Iterates implement → v
    ```
 
 2. **Resolve the plan file**
-   - If the caller passed `--plan <path>`, use it.
+   - If the user referenced an explicit plan path, use it.
    - Else pick the newest `~/.lhc/plans/*.md` whose slug matches the user's task tokens.
    - Else pick the newest `~/.lhc/plans/ralplan-*.md`.
-   - If nothing matches, STOP and tell the user to run `/let-him-cook:plan` first.
+   - If nothing matches, STOP and tell the user: "No plan found under `~/.lhc/plans/`. Run the `lhc-ralplan` skill first."
 
 3. **Run readiness and ensure runtime** (if not already done by the command):
 
