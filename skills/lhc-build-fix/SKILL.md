@@ -1,56 +1,77 @@
 ---
 name: lhc-build-fix
-description: Triage failing Wix builds, PR checks, and release paths using DevEx and repo archaeology.
+description: Triages failing Wix builds, PR checks, and releases using DevEx and repo archaeology, then hands off to lhc-ralplan when a code fix is needed. Use when a CI job, PR build, release, or rollout is failing, or the user says "why is my build red". Does not implement inline or retrigger builds.
+when_to_use: A build, CI job, release, or rollout is failing and needs classification and ownership; or a PR build is red and the user wants to know why.
 ---
 
 # LHC Build Fix
 
-Use for CI failures, PR build failures, release failures, and related triage.
+CI failures, PR build failures, release failures, rollout anomalies. Classifies the root cause. If a code fix is warranted, hands off to `lhc-ralplan` — never implements inline.
 
-## Required Reading
-
+<Required_Reading>
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
 - `../shared/wix-tool-surfaces.md`
+</Required_Reading>
+
+<Use_When>
+- A PR build, CI job, release, or rollout is failing.
+- The user asks "why is my build red" or "why did the rollout fail".
+- Ownership is ambiguous and needs a DevEx + octocode correlation.
+</Use_When>
+
+<Do_Not_Use_When>
+- The user has a plan and wants to implement it — use `lhc-ralph`.
+- The failure is a prod incident (not a build) — use `lhc-investigate`.
+- The question is "what's the right pattern" — use `lhc-research`.
+</Do_Not_Use_When>
+
+<Execution_Policy>
+- External systems stay read-only. MUST NOT retrigger builds unless the user explicitly asks in the same turn.
+- MUST classify the failure into exactly one bucket: code / flaky-test / release / ownership / infra.
+- MUST save the triage artifact at `~/.lhc/artifacts/build-fix-<slug>-<UTC-ISO>.md`.
+- MUST NOT edit repo files from inside this skill.
+- If a code fix is warranted, invoke `Skill("let-him-cook:lhc-ralplan")` to produce a plan, then STOP. Never inline the fix.
+- A "flaky" label requires at least 3 runs of evidence — otherwise it's a code failure awaiting proof.
+</Execution_Policy>
 
 ## Workflow
 
-1. Initialize workflow state:
+1. **Initialize workflow state**
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow build-fix --source workflow --cwd "$PWD" --task "<failure>" --peer-review-required
+   ```
 
-```bash
-node ../../scripts/runtime-touch.js --workflow build-fix --source workflow --phase starting --peer-review-required
-```
+2. **Run readiness**
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js build-fix --json
+   ```
 
-2. Run readiness:
+3. **Gather evidence in parallel** when independent:
+   - `Task(subagent_type="let-him-cook:build-release-operator", …)` for devex + octocode classification
+   - `Task(subagent_type="let-him-cook:repo-cartographer", …)` for repo/PR archaeology
 
-```bash
-node ../../scripts/check-readiness.js build-fix
-```
+4. **Classify** into exactly one of: `code` / `flaky-test` / `release` / `ownership` / `infra`.
 
-3. Use:
-   - `devex` for build, release, rollout, and ownership context
-   - `octocode` for repo search and PR archaeology
-   - local inspection for the active repository
-4. Explicitly separate the failure type:
-   - code failure
-   - flaky test
-   - release failure
-   - ownership ambiguity
-   - infra or system failure
-5. If the workflow produces a formal conclusion or code change recommendation, require counterpart review before presenting it as final.
+5. **Save the triage artifact** at `~/.lhc/artifacts/build-fix-<slug>-<UTC-ISO>.md`. Include classification, evidence per surface, owning team, recommended next action.
 
-## Parallel Triage Guidance
+6. **Route the next action**:
+   - `code`: invoke `Skill("let-him-cook:lhc-ralplan")` to produce a plan, then STOP.
+   - `flaky-test`: open a follow-up for the owning team, STOP.
+   - `release`: tell the user to route to the release owner, STOP.
+   - `ownership`: list top candidate owners with evidence, STOP.
+   - `infra`: route to DevEx/SRE, STOP.
 
-If the task has multiple independent evidence families, use native subagents for lanes such as:
+7. **Peer review** the triage conclusion via `peer-review.sh --mode analysis`.
 
-- DevEx build and release evidence
-- Octocode repo and PR archaeology
-- local repository verification
+8. **Append to notepad** and STOP.
 
-Keep the final classification and recommendation with the coordinating agent.
-
-## Guardrails
-
-- remain read-only externally
-- do not retrigger builds unless the user explicitly asks
+<Final_Checklist>
+- [ ] Classification is exactly one bucket
+- [ ] If flaky, evidence spans at least 3 runs
+- [ ] Artifact saved under `~/.lhc/artifacts/`
+- [ ] Peer-review verdict recorded
+- [ ] Builds were NOT retriggered (unless explicitly authorized)
+- [ ] No repo file was modified in this skill
+</Final_Checklist>

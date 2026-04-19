@@ -1,51 +1,96 @@
 ---
 name: lhc-ralplan
-description: Plan substantial Wix internal engineering work with readiness checks and mandatory peer review.
+description: Produces a peer-reviewed plan artifact at ~/.lhc/plans/ralplan-*.md for substantial Wix internal engineering work. Use when the user says "plan this", "ralplan", "design before we code", or describes a change broad enough that jumping into code would cause rework. Does not implement, edit source files, or invoke executor skills.
+when_to_use: The user wants an up-front plan for a non-trivial Wix change, or the change touches multiple files/services/owners, or the change needs explicit acceptance criteria and peer review before code is written.
 ---
 
 # LHC RALPlan
 
-Use for substantial plans that need internal research, repo context, and a durable local artifact.
+Substantial plans that need internal research, repo context, and a durable local artifact before any code is touched. This skill PRODUCES a plan file and STOPS. It never implements.
 
-## Required Reading
-
+<Required_Reading>
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
 - `../shared/subagent-catalog.md`
+</Required_Reading>
+
+<Use_When>
+- The user says: "plan this", "let's plan", "ralplan", "design this", "before we code".
+- The change touches multiple files, services, or ownership boundaries.
+- The task needs explicit acceptance criteria, verification steps, and peer review before implementation.
+</Use_When>
+
+<Do_Not_Use_When>
+- A plan file already exists under `~/.lhc/plans/` and the user wants to execute — use `lhc-ralph`.
+- The work is a single focused fix with obvious scope — skip planning, let the caller implement directly.
+- The user is asking a research question — use `lhc-research`.
+- The user is investigating a prod issue — use `lhc-investigate`.
+</Do_Not_Use_When>
+
+<Execution_Policy>
+- MUST write the plan to `~/.lhc/plans/ralplan-<slug>-<UTC-ISO>.md` before stopping.
+- MUST NOT edit, create, or delete any file outside of `~/.lhc/`.
+- MUST NOT invoke `lhc-ralph`, `lhc-team`, or any execution skill from within this skill.
+- MUST route the plan to counterpart peer review via `scripts/peer-review.sh` before marking it approved.
+- If the user says "just implement it", refuse and tell them to invoke `lhc-ralph` after the plan is saved.
+- If required MCPs are missing, hard-stop unless the user explicitly says to continue in degraded mode in the same turn.
+- A plan must be executable as-written. Stub language ("TBD", "TODO", "implement later", "TBD by team") is a plan failure — revise instead.
+- Every acceptance criterion must be concrete and testable (90%+). Every claim about existing code must cite a file path (80%+).
+</Execution_Policy>
 
 ## Workflow
 
-1. Initialize workflow state:
+1. **Initialize workflow state**
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow ralplan --source workflow --cwd "$PWD" --task "<user request>" --peer-review-required
+   ```
 
-```bash
-node ../../scripts/runtime-touch.js --workflow ralplan --source workflow --phase starting --peer-review-required
-```
+2. **Run readiness**
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js ralplan --json
+   ```
 
-2. Run readiness:
+3. **Ensure runtime**
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/ensure-runtime.js >/dev/null
+   ```
 
-```bash
-node ../../scripts/check-readiness.js ralplan
-```
+4. **Ground the plan in evidence** — dispatch subagents in parallel when lanes are independent:
+   - `Task(subagent_type="let-him-cook:internal-docs-researcher", …)` for docs-schema
+   - `Task(subagent_type="let-him-cook:repo-cartographer", …)` for octocode / repo archaeology
+   - `Task(subagent_type="let-him-cook:framework-standards-reviewer", …)` for convention checks
+   - `Task(subagent_type="let-him-cook:architect", …)` for boundary review when the change is structural
 
-3. Ensure local runtime exists before writing plan artifacts:
+5. **Write the plan file** at `~/.lhc/plans/ralplan-<slug>-<UTC-ISO>.md`. Required sections:
+   - Title + one-paragraph goal
+   - Acceptance criteria (numbered, testable, concrete)
+   - Implementation steps (each with file paths; no stubs)
+   - Risks + mitigations
+   - Verification commands (copy-pasteable)
+   - ADR block: Decision, Drivers, Alternatives considered, Why chosen, Consequences, Follow-ups
 
-```bash
-node ../../scripts/ensure-runtime.js
-```
+6. **Peer review** — route the plan to the counterpart model:
+   ```bash
+   sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader claude --mode plan --cwd "$PWD" --prompt-file <plan-path>
+   ```
+   If rejected, revise and re-review up to 3 times. If still rejected, save the latest plan, record the verdict, and stop.
 
-4. Ground the plan using:
-   - local repo context
-   - `docs-schema`
-   - `octocode`
-   - `devex` when service, rollout, or ownership context matters
-5. Write the plan into `~/.lhc/plans/`.
-6. Route the final plan to counterpart review before presenting it as approved.
+7. **Append to notepad**
+   ```bash
+   printf -- "- %s  ralplan  %s  %s  plan=%s\n" "$(date -u +%FT%TZ)" "<slug>" "$PWD" "<plan-path>" >> ~/.lhc/notepad.md
+   ```
 
-## Review Rule
+8. **Report and STOP** — print the plan path and peer-review verdict, then tell the user to invoke `lhc-ralph` with the plan path when ready to execute. Do NOT invoke `lhc-ralph` yourself.
 
-Major plans require counterpart review. If running inside Codex, default to Claude:
-
-```bash
-sh ../../scripts/peer-review.sh --leader codex --mode plan --prompt-file /path/to/prompt.txt
-```
+<Final_Checklist>
+- [ ] Plan file exists under `~/.lhc/plans/`
+- [ ] Acceptance criteria are numbered, testable, concrete (90%+)
+- [ ] File paths cited on 80%+ of claims about existing code
+- [ ] All risks have a mitigation
+- [ ] Peer-review verdict recorded in the plan file
+- [ ] ADR section present
+- [ ] No stub language ("TBD", "TODO", "implement later") anywhere in the plan
+- [ ] No source file in the working repo was modified
+- [ ] Notepad entry appended
+</Final_Checklist>

@@ -1,65 +1,81 @@
 ---
 name: lhc-investigate
-description: Investigate production issues using Wix operational surfaces while staying read-only by default.
+description: Investigates a Wix production issue using root-cause, grafana, and devex, saves findings to ~/.lhc/artifacts/investigate-*.md, and peer-reviews the conclusion. Use for production debugging, incident analysis, request-ID driven RCA. Does not implement fixes, post to Slack, mutate Jira, or retrigger builds.
+when_to_use: The user reports a prod issue, failing request, on-call page, or regression; or asks "what caused X" about a live system — never "how do I code the fix".
 ---
 
 # LHC Investigate
 
-Use for production debugging, incident analysis, and request-ID-driven investigations.
+Production debugging, incident analysis, request-ID driven RCA. Produces an investigation artifact and stops.
 
-## Required Reading
-
+<Required_Reading>
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
 - `../shared/wix-tool-surfaces.md`
+</Required_Reading>
+
+<Use_When>
+- The user reports a prod issue, failing request, on-call page, or regression.
+- The task is "what caused X" — not "how do I code the fix".
+- Multiple evidence families (logs, metrics, traces, releases, ownership) need correlation.
+</Use_When>
+
+<Do_Not_Use_When>
+- The issue is a failing PR/CI build — use `lhc-build-fix`.
+- The user wants a code change — use `lhc-ralplan` then `lhc-ralph`.
+- The user is asking a "how does X work" question — use `lhc-research`.
+</Do_Not_Use_When>
+
+<Execution_Policy>
+- External systems stay read-only. No Slack posts, no Jira mutations, no Grafana writes, no build retriggers.
+- MUST save the investigation artifact at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md` before stopping.
+- MUST gate the final conclusion on counterpart peer review.
+- MUST NOT implement code edits. If a fix is warranted, tell the user to invoke `lhc-ralplan` next.
+- State confidence explicitly (low/medium/high) and name the evidence that would change it.
+- Use at least two surfaces before concluding — a single-surface conclusion is weak.
+</Execution_Policy>
 
 ## Workflow
 
-1. Initialize workflow state:
+1. **Initialize workflow state**
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow investigate --source workflow --cwd "$PWD" --task "<user request>" --peer-review-required
+   ```
 
-```bash
-node ../../scripts/runtime-touch.js --workflow investigate --source workflow --phase starting --peer-review-required
-```
+2. **Run readiness**
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js investigate --json
+   ```
 
-2. Run readiness:
+3. **Use primary surfaces** — pull in parallel when lanes are independent:
+   - `root-cause` for request-ID RCA
+   - `grafana` for logs, metrics, traces, incidents, alerts, on-call context
+   - `devex` for build/release/rollout/ownership correlation
 
-```bash
-node ../../scripts/check-readiness.js investigate
-```
+4. **Ensure runtime exists**
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/ensure-runtime.js >/dev/null
+   ```
 
-3. Use:
-   - `root-cause` for request-ID-based RCA
-   - `grafana` for logs, metrics, traces, incidents, alerts, and on-call context
-   - `devex` for build, release, rollout, and ownership correlation
-4. Ensure local runtime exists before writing artifacts:
+5. **Dispatch specialists** for bounded lanes:
+   - `Task(subagent_type="let-him-cook:incident-investigator", …)` for cross-surface correlation
+   - `Task(subagent_type="let-him-cook:build-release-operator", …)` for release/rollout correlation
 
-```bash
-node ../../scripts/ensure-runtime.js
-```
+6. **Peer review the conclusion**
+   ```bash
+   sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader claude --mode investigation --cwd "$PWD" --prompt-file <investigation-summary-path>
+   ```
 
-5. Save the investigation summary as a local artifact.
-6. Get counterpart review before presenting the final incident conclusion.
+7. **Save the artifact** at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md`. Required sections: timeline (UTC), evidence per surface with links/request IDs, correlation across surfaces, root-cause hypothesis with confidence, owner, peer-review verdict, residual gaps.
 
-## Parallel Evidence Guidance
+8. **Append to notepad** and STOP.
 
-If the investigation cleanly decomposes, use native subagents for independent lanes such as:
-
-- request-ID root cause analysis
-- logs and metrics interpretation
-- build, rollout, and ownership correlation
-
-Keep these steps with the coordinating agent:
-
-- deciding which evidence lanes matter
-- reconciling conflicts across logs, metrics, and release data
-- writing the final incident conclusion
-
-## Guardrails
-
-- no Slack posts
-- no Jira mutations
-- no Grafana writes
-- no build retriggers
-
-All external changes stay forbidden unless the user explicitly requests them.
+<Final_Checklist>
+- [ ] Evidence gathered from at least two of root-cause / grafana / devex
+- [ ] Artifact saved under `~/.lhc/artifacts/`
+- [ ] Confidence stated explicitly with the evidence that would change it
+- [ ] Peer-review verdict recorded
+- [ ] No external system was written to
+- [ ] No source file was modified
+</Final_Checklist>

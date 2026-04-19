@@ -1,0 +1,17 @@
+{
+  "description": "LHC — bootstrap ~/.lhc runtime on session start. SessionStart covers startup|resume|clear|compact, which is the full set of events that require a fresh runtime.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PLUGIN_ROOT\"/scripts/runtime-touch.js --source session-start --cwd \"$PWD\" >/dev/null",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

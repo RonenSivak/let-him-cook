@@ -1,0 +1,31 @@
+{
+  "name": "let-him-cook-local",
+  "owner": {
+    "name": "Ronensi",
+    "email": "ronensi@wix.com"
+  },
+  "metadata": {
+    "description": "Local marketplace entry for the home-local LHC Claude Code plugin."
+  },
+  "plugins": [
+    {
+      "name": "let-him-cook",
+      "description": "Home-local Claude Code plugin for Wix internal engineering workflows — readiness gating, read-only governance, peer-reviewed investigations, research, build triage, and planning.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Ronensi",
+        "email": "ronensi@wix.com"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://mcp-s-connect.wewix.net/mcp-servers",
+      "tags": [
+        "wix",
+        "internal-engineering",
+        "mcp",
+        "devex",
+        "incident-response"
+      ]
+    }
+  ]
+}
