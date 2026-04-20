@@ -8,10 +8,21 @@ when_to_use: The user reports a prod issue, failing request, on-call page, or re
 
 Production debugging, incident analysis, request-ID driven RCA. Produces an investigation artifact and stops.
 
+<Iron_Law>
+NO CONCLUSION WITHOUT AT LEAST TWO CORRELATED SURFACES AND PEER REVIEW. A single-surface conclusion is labeled `hypothesis`, never `root cause`.
+
+NO IMPLEMENTATION FROM INSIDE INVESTIGATE. If a fix is warranted, route the user to `lhc-ralplan`. Do not edit code inside this skill.
+
+See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-guard.md` for the thoughts that lead around them.
+</Iron_Law>
+
 <Required_Reading>
+- `../shared/iron-laws.md`
+- `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
+- `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
 </Required_Reading>
 
@@ -69,7 +80,13 @@ Production debugging, incident analysis, request-ID driven RCA. Produces an inve
 
 7. **Save the artifact** at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md`. Required sections: timeline (UTC), evidence per surface with links/request IDs, correlation across surfaces, root-cause hypothesis with confidence, owner, peer-review verdict, residual gaps.
 
-8. **Append to notepad** and STOP.
+8. **Append to notepad** (use the helper — never hand-format)
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+     --workflow investigate --slug "<slug>" --cwd "$PWD" \
+     --kv artifact="<artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>" --kv conf="<low|medium|high>"
+   ```
+   Then STOP.
 
 <Final_Checklist>
 - [ ] Evidence gathered from at least two of root-cause / grafana / devex

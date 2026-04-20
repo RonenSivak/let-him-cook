@@ -76,6 +76,14 @@
         "codex"
       ]
     },
+    "standards": {
+      "mcp": [
+        "docs-schema"
+      ],
+      "cli": [
+        "codex"
+      ]
+    },
     "review": {
       "mcp": [],
       "cli": [

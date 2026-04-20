@@ -3,102 +3,155 @@ DO NOT STOP TO ASK "SHOULD I PROCEED?" — PROCEED. DO NOT WAIT FOR CONFIRMATION
 IF BLOCKED, TRY AN ALTERNATIVE APPROACH. ONLY ASK WHEN TRULY AMBIGUOUS OR DESTRUCTIVE.
 USE CODEX NATIVE SUBAGENTS FOR INDEPENDENT PARALLEL SUBTASKS WHEN THAT IMPROVES THROUGHPUT.
 
-# Let Him Cook (LHC) - Wix Engineering Workflow Layer
+# Let Him Cook (LHC) — Wix Engineering Workflow Layer
 
-This repository contains `let-him-cook`, a Codex plugin and workflow layer for Wix internal engineering work.
+This repository contains `let-him-cook`, a Codex plugin and workflow layer for Wix internal engineering work. It is the Codex-side twin of a parallel Claude Code plugin. Shared surface: skills, scripts, missions, docs.
 
-This `AGENTS.md` is the top-level operating contract for the repository. Role prompts under `prompts/*.md` are narrower execution surfaces. Skills under `skills/` are reusable workflows. Mission folders under `missions/` are durable, repeatable workflow patterns and examples.
+Hierarchy:
+
+- `AGENTS.md` (this file) — top-level operating contract. Short. Read every session.
+- `skills/<name>/SKILL.md` — reusable workflows with Iron Laws and checklists.
+- `prompts/<name>.md` — narrower execution surfaces (role prompts).
+- `missions/<pattern>/` — durable, repeatable workflow examples.
+- `skills/shared/*.md` — invariants and governance (iron-laws, rationalization-guard, peer-review, read-only, readiness, notepad schema, commit trailers).
 
 <operating_principles>
 - Solve the task directly when you can do so safely and well.
 - Prefer evidence over assumption; verify before claiming completion.
 - Use the lightest path that preserves quality: direct action, internal MCPs, then delegation.
-- Default external systems to read-only unless the user explicitly requests a specific write operation in the current session.
-- Use Codex native subagents for independent, bounded parallel subtasks when they reduce latency or context pressure.
-- Keep the main agent focused on framing, conflict resolution, synthesis, and final verification.
+- Default external systems to read-only unless the user explicitly authorizes a specific write in the current session.
+- Use Codex native subagents for independent, bounded parallel lanes when they reduce latency or context pressure.
+- Keep the coordinating agent focused on framing, conflict resolution, synthesis, and final verification.
 </operating_principles>
 
 <working_agreements>
-- No external writes by default:
+- Read-only by default for external systems:
   - no PR comments or edits
-  - no Jira updates
-  - no Slack posting
+  - no Jira writes
+  - no Slack posts
   - no Grafana mutations
-  - no DevEx write-side actions
-- Major plans, code changes, production investigations, and incident conclusions require counterpart-model review.
-- Runtime state belongs under `~/.lhc/`.
-- Keep workflows explicit and inspectable instead of collapsing everything into one generic agent.
+  - no DevEx write-side actions (no build retriggers without explicit opt-in)
+- Counterpart peer review is mandatory for plans, diffs, production investigations, and incident conclusions. Route via `scripts/peer-review.sh`.
+- Never self-approve in the same context. The producing agent does not sign off on its own output.
+- Runtime state belongs under `~/.lhc/`. Every workflow artifact is saved before stopping.
+- Readiness first: blocked readiness hard-stops unless the user opts into degraded mode in the same turn.
+- Keep workflows explicit and inspectable — do not collapse everything into one generic agent.
 </working_agreements>
 
 <delegation_rules>
 Default posture: work directly.
 
-Use subagents when the work decomposes cleanly into independent evidence or execution lanes.
-
-Typical LHC lanes:
+Use subagents when the work decomposes cleanly into independent evidence or execution lanes. Typical LHC lanes:
 - internal docs and schema evidence
 - repo and PR archaeology
 - framework standards and conventions
 - build or rollout correlation
 - final verification or review
 
-Keep these responsibilities with the coordinating agent:
-- interpreting the user request
-- choosing lanes
-- resolving conflicting evidence
-- writing the final answer
+Keep these with the coordinating agent: interpreting the user request, choosing lanes, resolving conflicting evidence, writing the final answer.
 </delegation_rules>
 
-<agent_catalog>
+<role_catalog>
+Role prompts live under `prompts/`. The catalog below reflects files that actually exist.
+
 Generic roles:
 - `planner`
-- `executor`
 - `architect`
-- `debugger`
-- `verifier`
 - `code-reviewer`
-- `security-reviewer`
-- `test-engineer`
-- `writer`
-- `explore`
+- `debugger`
+- `executor`
+- `verifier`
 
 Wix-native specialists:
-- `incident-investigator`
-- `build-release-operator`
-- `internal-docs-researcher`
-- `repo-cartographer`
-- `jira-slack-coordinator`
-- `framework-standards-reviewer`
-</agent_catalog>
+- `incident-investigator` — root-cause, grafana, devex
+- `build-release-operator` — devex + octocode for builds, releases, rollouts
+- `internal-docs-researcher` — docs-schema and internal docs
+- `repo-cartographer` — octocode for wix-private discovery and PR archaeology
+- `framework-standards-reviewer` — Wix tooling conventions
 
-<keyword_detection>
+Coverage gaps (intentionally not wired as roles — handled by `lhc-review` + counterpart model instead): security-reviewer, test-engineer, writer, explore.
+</role_catalog>
+
+<skill_catalog>
 Preferred LHC surfaces:
-- `lhc-interview`
-- `lhc-ralplan`
-- `lhc-ralph`
-- `lhc-team`
-- `lhc-investigate`
-- `lhc-build-fix`
-- `lhc-research`
-- `lhc-review`
-</keyword_detection>
+- `using-lhc` — session-start orientation; read this first if you are uncertain.
+- `lhc-interview` — classifies ambiguous requests and routes to the right skill.
+- `lhc-status` — read-only snapshot of `~/.lhc/`.
+- `lhc-standards` — produces a coding-standards brief balancing current-repo patterns with Wix ecosystem standards. Auto-called by `lhc-ralplan` for code-modifying plans.
+- `lhc-ralplan` — produces a peer-reviewed plan artifact.
+- `lhc-ralph` — executes an existing plan with verify/fix loop.
+- `lhc-team` — parallel lanes on top of a reviewed plan.
+- `lhc-investigate` — production RCA with multi-surface correlation.
+- `lhc-build-fix` — classifies failing builds, CI, releases, rollouts.
+- `lhc-research` — "how does X work at Wix" with cited sources.
+- `lhc-review` — counterpart peer-review gate; saves verdict.
+</skill_catalog>
 
 <verification>
 Before claiming a workflow is complete:
 - identify what evidence proves the claim
-- run the verification
-- read the output
+- run the verification command
+- read the full output
 - state residual gaps explicitly
+
+"The last run passed" is not fresh evidence. "The plan says it works" is not verification. Run it.
+
+If three iterations of the same fix have failed: stop. Question the plan. Do not attempt fix #4.
 </verification>
 
-<runtime_layout>
-Primary runtime root:
-- `~/.lhc/`
+<anti_patterns>
+- **Self-approval.** "I already reviewed it mentally" is not peer review. Route to the counterpart.
+- **Silent degraded mode.** Missing MCPs cannot be papered over with plausible-sounding output. Name the gap or stop.
+- **Polite-stop reporting.** Reporting "approved" before the artifact is saved and the review is recorded.
+- **Inline plan invention.** `lhc-ralph` without a plan file is forbidden. Run `lhc-ralplan` first.
+- **Scope creep.** Fix the thing that was asked. Don't refactor neighbors. Don't add abstractions.
+- **Inferring write permission.** "Handle it", "finish it", "take care of it" do not authorize external writes.
+- **Catalog drift.** Listing a role in a catalog that has no file under `prompts/` makes the catalog a lie.
+</anti_patterns>
 
-Important files:
-- `~/.lhc/state/runtime.json`
-- `~/.lhc/state/activity.jsonl`
-- `~/.lhc/state/sessions/<session-id>/...`
-- `~/.lhc/plans/`
-- `~/.lhc/artifacts/`
+<runtime_layout>
+Primary runtime root: `~/.lhc/`
+
+- `~/.lhc/state/runtime.json` — bootstrap counts, last activity
+- `~/.lhc/state/activity.jsonl` — append-only event log
+- `~/.lhc/state/sessions/<session-id>/<workflow>.json` — per-workflow state
+- `~/.lhc/plans/` — ralplan artifacts
+- `~/.lhc/artifacts/` — investigation / execution / research / review / build-fix artifacts
+- `~/.lhc/notepad.md` — tab-separated append-only ledger (schema: `skills/shared/notepad-schema.md`)
 </runtime_layout>
+
+<peer_review_routing>
+Inside Codex, counterpart review routes to Claude:
+
+```bash
+sh "$CODEX_PLUGIN_ROOT"/scripts/peer-review.sh --leader codex --mode <mode> --prompt-file <file>
+```
+
+Inside Claude Code, the same script routes to Codex. Modes: `code-review`, `plan`, `investigation`, `conclusion`, `analysis`.
+
+If neither counterpart CLI is installed, the verdict is `degraded`. Save the artifact anyway and state the missing coverage explicitly.
+</peer_review_routing>
+
+<commit_protocol>
+Non-trivial commits produced by `lhc-ralph` or `lhc-team` use git trailers to preserve decision context. See `skills/shared/commit-trailers.md` for the full schema. Minimum trailers when a workflow authorized the change:
+
+```
+Constraint: <active constraint>
+Rejected: <alternative> | <why>
+Confidence: high|medium|low
+Scope-risk: narrow|moderate|broad
+LHC-plan: ~/.lhc/plans/<plan-file>
+LHC-peer-review: approved|approved-with-changes
+```
+
+Skip trailers for typo-only or formatting-only commits.
+</commit_protocol>
+
+<kill_switches>
+Disable LHC enforcement when the user needs vanilla Codex:
+
+- `DISABLE_LHC=1` — treat LHC as absent. Hooks return `{}`; skills are not auto-invoked.
+- `LHC_SKIP_HOOKS=<csv>` — disable named hooks only (e.g. `precompact,stop`).
+
+Surface the kill switches when the user repeatedly fights the read-only defaults or asks how to turn LHC off.
+</kill_switches>

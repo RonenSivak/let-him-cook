@@ -8,7 +8,17 @@ when_to_use: The request is ambiguous and could map to multiple LHC workflows. N
 
 Intake surface for broad or ambiguous Wix internal engineering requests. Classifies, checks readiness, and tells the user which LHC skill to invoke next. Never implements.
 
+<Iron_Law>
+NO IMPLEMENTATION INSIDE INTERVIEW. This skill classifies and routes. It never plans, researches, investigates, or edits files.
+
+ONE CLARIFYING QUESTION MAX. If you need more than one question to classify, the user's request is not actually LHC-shaped — say so and offer the plain Claude Code path.
+
+See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-guard.md` for the thoughts that lead around them.
+</Iron_Law>
+
 <Required_Reading>
+- `../shared/iron-laws.md`
+- `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/wix-tool-surfaces.md`
@@ -46,6 +56,7 @@ Intake surface for broad or ambiguous Wix internal engineering requests. Classif
    | investigate | `lhc-investigate` | prod issue, logs, metrics, request-ID RCA |
    | build-fix | `lhc-build-fix` | failing PR build, CI, release, rollout |
    | research | `lhc-research` | "how does X work at Wix", schema/docs questions |
+   | standards | `lhc-standards` | "what's the right pattern here", coding-convention guidance before a diff |
    | ralplan | `lhc-ralplan` | substantial change needing an upfront plan |
    | ralph | `lhc-ralph` | user has a saved plan and wants to implement |
    | team | `lhc-team` | task splits into independent parallel lanes |

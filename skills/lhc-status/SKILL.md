@@ -8,6 +8,18 @@ when_to_use: The user wants a picture of current LHC state or needs a recommenda
 
 Read-only. Prints the state of `~/.lhc/` so the user knows what is in flight and which LHC skill to invoke next.
 
+<Iron_Law>
+READ-ONLY. Never modifies anything under `~/.lhc/` except via the idempotent `ensure-runtime.js` bootstrap.
+
+See `../shared/iron-laws.md` for all invariants.
+</Iron_Law>
+
+<Required_Reading>
+- `../shared/iron-laws.md`
+- `../shared/notepad-schema.md`
+- `../../docs/runtime-contract.md`
+</Required_Reading>
+
 <Use_When>
 - The user asks "what's in `~/.lhc/`", "what plans do I have", or "status".
 - The user wants a recommendation for which LHC skill to run next given current state.

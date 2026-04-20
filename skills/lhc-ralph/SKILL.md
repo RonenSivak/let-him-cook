@@ -8,10 +8,26 @@ when_to_use: The user has a saved plan and wants it implemented end-to-end with 
 
 Executes a plan that already exists in `~/.lhc/plans/`. Iterates implement → verify → fix until acceptance criteria pass, then gates on counterpart peer review.
 
+<Iron_Law>
+NO EXECUTION WITHOUT A PLAN FILE. Inventing the plan inline is forbidden. If no plan exists under `~/.lhc/plans/`, stop and tell the user to run `lhc-ralplan` first.
+
+WRITE A FAILING TEST FIRST. For every acceptance criterion, write the test, run it, watch it fail, then implement. Verification that counts is test output — not the agent's belief the code is correct. Evidence: Anthropic SWE-bench scaffold prompt, CodePRM (ACL 2025), Superpowers RED-GREEN-REFACTOR, Huang et al. ICLR 2024 (intrinsic self-correction degrades without an oracle).
+
+SAME FIX FAILS 3× = STOP. If the same step fails three times, the plan is wrong. Escalate to `architect` review or return to `lhc-ralplan`. Do not attempt fix #4. Track per-step failure count in `~/.lhc/state/sessions/<sid>/ralph.json:steps[n].attempts`. Prompts alone do not stop loops — the count is enforced here.
+
+TESTS ARE ORACLES, NOT SUGGESTIONS. A passing test the agent wrote without first watching fail is not verification — it's confirmation bias. If reported pass rate exceeds 95% first-try on a non-trivial step, treat it as suspicious and re-verify against an independent reproduction.
+
+See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-guard.md` for the thoughts that lead around them.
+</Iron_Law>
+
 <Required_Reading>
+- `../shared/iron-laws.md`
+- `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
+- `../shared/notepad-schema.md`
+- `../shared/commit-trailers.md`
 - `../../docs/runtime-contract.md`
 </Required_Reading>
 
@@ -57,10 +73,11 @@ Executes a plan that already exists in `~/.lhc/plans/`. Iterates implement → v
    ```
 
 4. **Execution loop** — for each step in the plan:
-   - Dispatch `Task(subagent_type="let-him-cook:executor", prompt=<step + file anchors + acceptance bits>)` for bounded edits.
-   - Run the verification command(s) from the plan.
-   - If verification fails, dispatch `Task(subagent_type="let-him-cook:debugger", …)` for root cause, then fix via `executor`. Bound to 5 retries per step.
-   - Record results per step.
+   - **Write the failing test first.** Create or identify the test that encodes the acceptance criterion. Run it. Confirm it fails for the *right* reason (not a setup error). If the test passes before implementation, the test is wrong — rewrite it.
+   - Dispatch `Task(subagent_type="let-him-cook:executor", prompt=<step + file anchors + failing-test output + acceptance bits>)` for bounded edits.
+   - Run the verification command(s) from the plan. Read the full output.
+   - If verification fails, dispatch `Task(subagent_type="let-him-cook:debugger", …)` for root cause, then fix via `executor`. **Hard cap: 3 retries per step.** After 3 failed retries, STOP the step and surface the failure — do not attempt fix #4.
+   - Record `steps[n].attempts` and `steps[n].verification` in the session state.
 
 5. **Verify against the whole plan** — dispatch `Task(subagent_type="let-him-cook:verifier", …)` to gate each acceptance criterion against fresh evidence.
 
@@ -76,16 +93,20 @@ Executes a plan that already exists in `~/.lhc/plans/`. Iterates implement → v
    - peer-review verdict
    - residual gaps
 
-8. **Append to notepad**
+8. **Append to notepad** (use the helper — never hand-format)
    ```bash
-   printf -- "- %s  ralph  %s  %s  plan=%s  artifact=%s\n" "$(date -u +%FT%TZ)" "<slug>" "$PWD" "<plan-path>" "<artifact-path>" >> ~/.lhc/notepad.md
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+     --workflow ralph --slug "<slug>" --cwd "$PWD" \
+     --kv plan="<plan-path>" --kv artifact="<artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```
 
 9. **Report and STOP.**
 
 <Final_Checklist>
 - [ ] Plan file was read and used as the spec
-- [ ] Every acceptance criterion has a passing verification command
+- [ ] Every acceptance criterion has a corresponding test that was observed failing BEFORE implementation
+- [ ] Every acceptance criterion has a passing verification command (fresh run, not remembered)
+- [ ] No step exceeded 3 retries
 - [ ] Peer-review verdict is `approved` or `approved-with-changes` after fixes
 - [ ] Execution artifact saved under `~/.lhc/artifacts/`
 - [ ] Notepad entry appended

@@ -1,82 +1,334 @@
-# LHC
+# Let Him Cook (LHC)
 
-`let-him-cook` is a home-local Codex plugin for Wix developers. It is designed for daily internal engineering chores, not as a replacement for Wix MCP servers and not as a write-enabled automation framework.
+LHC is a **personal-local workflow plugin for Wix engineers** that runs on both **Claude Code** and **Codex**. It wraps internal Wix MCPs, the local `claude` and `codex` CLIs, and external surfaces (GitHub via octocode, external docs via context7) into evidence-driven workflows with mandatory counterpart-model peer review, a read-only posture for external systems, and a local runtime at `~/.lhc/` that survives across sessions.
 
-## Purpose
+It is **not** a replacement for Wix MCP servers and **not** a write-enabled automation framework. It is a structured way to plan, investigate, research, triage, and review Wix engineering work with fewer footguns and a traceable artifact trail.
 
-The plugin turns the existing Wix tooling surface into a coherent workflow layer for:
+---
 
-- build and CI triage
-- production investigation
-- ownership, release, and rollout lookup
-- internal documentation and repo research
-- structured planning and execution with peer review
+## At a glance
 
-## Principles
+| Workflow | Skill | Produces |
+|----------|-------|----------|
+| Orient | `using-lhc` | Session-start primer |
+| Classify ambiguous request | `lhc-interview` | Routing decision |
+| Snapshot current state | `lhc-status` | Read-only report |
+| Coding-standards brief | `lhc-standards` | `~/.lhc/artifacts/standards-*.md` |
+| Plan substantial change | `lhc-ralplan` | `~/.lhc/plans/ralplan-*.md` (peer-reviewed) |
+| Execute a plan | `lhc-ralph` | `~/.lhc/artifacts/execute-*.md` (peer-reviewed) |
+| Parallel-lane execution | `lhc-team` | `~/.lhc/artifacts/team-*.md` |
+| Production RCA | `lhc-investigate` | `~/.lhc/artifacts/investigate-*.md` |
+| Red build classification | `lhc-build-fix` | `~/.lhc/artifacts/build-fix-*.md` |
+| "How does X work at Wix" | `lhc-research` | `~/.lhc/artifacts/research-*.md` |
+| Peer-review gate | `lhc-review` | `~/.lhc/artifacts/review-*.md` |
 
-- External systems are `read-only` by default.
-- Missing prerequisites cause a `hard stop`.
-- If the user explicitly says to continue anyway, workflows may continue in `degraded mode`.
-- Counterpart-model review is mandatory for code changes, major plans, production investigations, and incident conclusions.
+---
 
-## Major Surfaces
+## Prerequisites
 
-- `devex`
-- `grafana`
-- `root-cause`
-- `docs-schema`
-- `jira`
-- `slack`
-- `octocode`
-- `context7`
-- local `codex` and `claude` CLIs
+- **Node.js 18+** (helper scripts under `scripts/` use Node).
+- One or both host CLIs: **Claude Code 2.x** and/or **Codex CLI**.
+- The counterpart CLI for peer review. Inside Claude Code, `codex` must be on `PATH`. Inside Codex, `claude` must be on `PATH`. If one is missing, review verdicts downgrade to `degraded` but nothing hard-fails.
+- Optional (recommended) MCP servers — LHC detects them at readiness time and tells you how to install any that are missing:
+  - `mcp-s` (Wix MCP gateway — covers `devex`, `grafana`, `root-cause`, `docs-schema`, `jira`, `slack`)
+  - `octocode` (GitHub repo discovery, PR archaeology)
+  - `context7` (external library docs)
 
-## Runtime Layout
+LHC **does not auto-install MCPs**. Each skill runs `scripts/check-readiness.js` on entry and prints a concrete install checklist if anything is missing.
 
-The plugin uses `~/.lhc/` for local runtime state and artifacts:
-
-- `~/.lhc/state/`
-- `~/.lhc/plans/`
-- `~/.lhc/artifacts/`
-- `~/.lhc/notepad.md`
-- `~/.lhc/project-memory.json`
-- `~/.lhc/readiness/`
-
-The runtime is bootstrapped automatically on first tool use through a plugin hook, and each major workflow initializes per-workflow state and context snapshots under `~/.lhc/state/sessions/`.
+---
 
 ## Install
 
-Use the official personal-plugin layout from the Codex plugin docs.
+LHC is a self-contained plugin directory. Install it once per host CLI. The plugin ships hooks in `hooks/hooks.json` (Claude Code) and the top-level `hooks.json` (Codex) — both are auto-registered when the plugin is active.
 
-1. Copy this plugin directory to:
-   - `~/.codex/plugins/let-him-cook`
-2. Add an entry to:
-   - `~/.agents/plugins/marketplace.json`
-3. Use this source path in the marketplace entry:
-   - `./.codex/plugins/let-him-cook`
-4. Restart Codex, open the Plugin Directory, and install `LHC`.
+### Claude Code
 
-## Workflow Skills
+**Option A — local marketplace (recommended for internal use).**
 
-- `lhc-interview`
-- `lhc-ralplan`
-- `lhc-ralph`
-- `lhc-team`
-- `lhc-investigate`
-- `lhc-build-fix`
-- `lhc-research`
-- `lhc-review`
+```bash
+# 1. Clone or place the plugin wherever you keep plugins.
+git clone <repo-url> ~/plugins/let-him-cook
 
-## Helper Scripts
+# 2. Register your local plugins directory as a marketplace.
+claude /plugin marketplace add ~/plugins
 
-- `scripts/check-readiness.js`
-- `scripts/ensure-runtime.js`
-- `scripts/runtime-touch.js`
-- `scripts/write-artifact.js`
-- `scripts/peer-review.sh`
+# 3. Install the plugin.
+claude /plugin install let-him-cook@local
+```
 
-## Notes
+**Option B — direct symlink (fastest for development).**
 
-- The plugin is home-local and personal-first.
-- Repo-local specialization is intentionally deferred to later overlay support.
-- The plugin does not auto-install MCPs. It detects readiness and emits install guidance.
+```bash
+mkdir -p ~/.claude/plugins
+ln -s "$(pwd)" ~/.claude/plugins/let-him-cook
+```
+
+**Option C — Anthropic plugin marketplace.** If LHC is published to the Wix-internal marketplace:
+
+```bash
+claude /plugin marketplace add wix-internal
+claude /plugin install let-him-cook@wix-internal
+```
+
+After any install method, restart Claude Code and run `/plugin list` to confirm `let-him-cook` is active.
+
+### Codex
+
+```bash
+# 1. Copy or symlink the plugin into Codex's plugins directory.
+mkdir -p ~/.codex/plugins
+ln -s "$(pwd)" ~/.codex/plugins/let-him-cook
+
+# 2. Register in Codex's marketplace manifest.
+mkdir -p ~/.agents/plugins
+# Add this entry to ~/.agents/plugins/marketplace.json:
+#   { "name": "let-him-cook-local", "source": "~/.codex/plugins/let-him-cook" }
+
+# 3. Restart Codex. Open the plugin directory and activate "LHC".
+codex plugin list
+```
+
+### Verify
+
+After install:
+
+```bash
+# Claude Code
+claude /plugin list
+# Look for: let-him-cook  (active)
+
+# Codex
+codex plugin list
+
+# LHC's own runtime check (works in either CLI):
+claude /lhc-status      # or: codex /lhc-status
+```
+
+`/lhc-status` boots the runtime, confirms the hooks fired, and prints a per-workflow readiness snapshot.
+
+---
+
+## Using LHC
+
+### Three invocation styles
+
+1. **Direct skill** (recommended — most reliable): `/lhc-ralplan`, `/lhc-investigate`, `/lhc-status`, etc.
+2. **Interactive classification**: `/lhc-interview` when you're not sure which skill to run.
+3. **Natural language auto-trigger**: skill descriptions cover common phrasings, but keyword auto-trigger has known reliability gaps (r/claude 2025 skill survey). Prefer explicit invocation when you know the workflow.
+
+### First-time walkthrough
+
+Say you want to add a small API endpoint to a Wix service. The full LHC flow:
+
+```
+1. /lhc-ralplan
+     → produces ~/.lhc/plans/ralplan-add-endpoint-<iso>.md
+     → auto-invokes lhc-standards → ~/.lhc/artifacts/standards-add-endpoint-<iso>.md
+     → peer-reviewed by counterpart model (Codex)
+
+2. Review the plan + standards brief. Revise the plan (re-run lhc-ralplan) if needed.
+
+3. /lhc-ralph
+     → reads the plan and the standards brief
+     → writes failing tests first for each acceptance criterion
+     → implements, runs tests, iterates (max 3 retries per step)
+     → routes the final diff through lhc-review (two-stage: spec + quality)
+     → saves ~/.lhc/artifacts/execute-add-endpoint-<iso>.md
+
+4. Open a PR with the diff. Commit message carries trailers:
+     LHC-plan: ~/.lhc/plans/ralplan-add-endpoint-<iso>.md
+     LHC-peer-review: approved
+```
+
+For a production issue:
+
+```
+/lhc-investigate → root-cause + grafana + devex correlation → peer-reviewed artifact.
+```
+
+For a red build:
+
+```
+/lhc-build-fix → devex + octocode → classifies as code/flaky/release/ownership/infra → hands off to lhc-ralplan if a code fix is warranted.
+```
+
+---
+
+## Coding standards in LHC
+
+LHC enforces a **weighted coding-standards policy** on every code-modifying workflow. It is the answer to "how does LHC write code that actually belongs in the repo."
+
+### How it works
+
+- `lhc-ralplan` auto-invokes `lhc-standards` when the plan will modify source files.
+- `lhc-standards` produces a per-task brief at `~/.lhc/artifacts/standards-*.md` that:
+  1. Detects the current repo's conventions (naming, imports, error handling, testing, state, etc.) by reading 5-10 nearby files + `tsconfig`, `package.json`, linter configs, `fedops.json`, etc.
+  2. Consults Wix ecosystem standards via `docs-schema`, `framework-standards-reviewer`, `internal-docs-researcher`, and `context7`.
+  3. Applies the weighted policy from [`skills/shared/coding-standards-policy.md`](skills/shared/coding-standards-policy.md).
+  4. Flags conflicts, migration costs, and non-negotiables (security, accessibility, Wix SDK).
+- `lhc-ralph` reads the brief when executing — the executor agent treats *Applied Rulings* and *Per-File Guidance* as contract.
+- `lhc-review` reads the brief during the code-quality stage — style nits that contradict the brief are refused; violations of non-negotiables are flagged as blockers.
+
+### Example weights
+
+| Category | Default (repo : ecosystem) | Rationale |
+|----------|---------------------------|-----------|
+| Naming, imports, file structure | 90 : 10 | Consistency beats any individual pattern preference |
+| Error handling | 70 : 30 | Repo idioms win; ecosystem wins when repo pattern silently swallows errors |
+| Testing | 60 : 40 | Ecosystem prefers Vitest; repo can override |
+| TypeScript strictness | 40 : 60 | Wix ecosystem enforces `strict: true`, no unjustified `any` |
+| Accessibility | 20 : 80 | Ecosystem almost always wins |
+| **Security** | **10 : 90** | **Ecosystem always wins — no exceptions** |
+| Wix SDK / FED CLI / Business Manager | 0 : 100 | Ecosystem-owned surface |
+
+Full table + override rules live in [`skills/shared/coding-standards-policy.md`](skills/shared/coding-standards-policy.md).
+
+### Invoking directly
+
+```bash
+claude /lhc-standards      # when you want the brief before committing to a plan
+```
+
+The skill is also useful for tie-breaking "should we use pattern X or Y" debates — it produces cited evidence for both sides.
+
+---
+
+## Hooks
+
+LHC ships four hooks. They are auto-registered when the plugin is installed; you do not need to install them separately.
+
+| Event | Script | What it does |
+|-------|--------|--------------|
+| `SessionStart` | `runtime-touch.js --source session-start` | Bootstraps `~/.lhc/` (idempotent) on new sessions, resumes, `/clear`, and `/compact`. |
+| `PreToolUse` | `pretool-runtime-bootstrap.sh` | Ensures `~/.lhc/` exists before any `Read`/`Write`/`Edit`/`Bash`/`Glob`/`Grep` tool fires. |
+| `PreCompact` | `precompact-reinject.js` | Re-injects LHC's working agreements (read-only defaults, peer-review requirement, loop guard, etc.) as `additionalContext` so compaction doesn't erase them. |
+| `Stop` | `stop-reminder.js` | If a workflow exited with `peer_review_required` still pending, emits a reminder naming the unfinished gate. Silent otherwise. |
+
+### Disabling hooks
+
+Two environment kill switches honor LHC hooks:
+
+- `DISABLE_LHC=1` — all LHC hooks return `{}`; working agreements do not re-inject.
+- `LHC_SKIP_HOOKS=<csv>` — disable named hooks. Example: `LHC_SKIP_HOOKS=precompact,stop`.
+
+Use these when you need a vanilla Claude Code / Codex session. Hooks respect the flag immediately — no restart required.
+
+---
+
+## Configuration
+
+### Kill switches (env vars)
+
+| Var | Effect |
+|-----|--------|
+| `DISABLE_LHC=1` | Treats LHC as absent. Hooks no-op; skills don't auto-inject agreements. |
+| `LHC_SKIP_HOOKS=<csv>` | Disable individual hooks (e.g. `precompact`, `stop`, `loop-guard`). |
+| `ENABLE_PROMPT_CACHING_1H=0` | Disable the 1-hour prompt cache that `peer-review.sh` opts into by default (saves ~20-40% on repeated review calls). |
+
+### Permission rules
+
+External-writes governance is encoded as data in [`permissions.json`](permissions.json) (Sourcegraph Amp pattern). The runtime does not auto-enforce — agents read it and skills respect it. Edit `permissions.json` if your Wix engagement legitimately needs a standing waiver (rare).
+
+### Peer-review routing
+
+Counterpart-model review always routes through [`scripts/peer-review.sh`](scripts/peer-review.sh):
+
+```bash
+sh $CLAUDE_PLUGIN_ROOT/scripts/peer-review.sh --leader claude --mode <mode> --prompt-file <file>
+```
+
+Modes: `code-review`, `plan`, `investigation`, `conclusion`, `analysis`. If the counterpart CLI is absent, the script exits non-zero and the calling skill records the verdict as `degraded`.
+
+---
+
+## Runtime layout (`~/.lhc/`)
+
+LHC keeps all durable state under `~/.lhc/`:
+
+```
+~/.lhc/
+├── state/
+│   ├── runtime.json              # bootstrap counts, last activity
+│   ├── activity.jsonl            # append-only event log
+│   └── sessions/<session-id>/
+│       ├── <workflow>.json       # per-workflow state (phase, peer_review_required)
+│       ├── <workflow>-context.md # context snapshot
+│       └── tool-calls.jsonl      # loop-guard tool-call hash log
+├── plans/
+│   └── ralplan-<slug>-<iso>.md
+├── artifacts/
+│   ├── standards-<slug>-<iso>.md
+│   ├── execute-<slug>-<iso>.md
+│   ├── investigate-<slug>-<iso>.md
+│   ├── build-fix-<slug>-<iso>.md
+│   ├── research-<slug>-<iso>.md
+│   ├── team-<slug>-<iso>.md
+│   └── review-<slug>-<iso>.md
+└── notepad.md                    # tab-separated append-only ledger
+```
+
+Tab-separated notepad format is documented in [`skills/shared/notepad-schema.md`](skills/shared/notepad-schema.md). Always append via [`scripts/write-notepad.js`](scripts/write-notepad.js) — never hand-format.
+
+---
+
+## Design principles
+
+See [`CLAUDE.md`](CLAUDE.md) for the operating contract and [`docs/evidence.md`](docs/evidence.md) for the research provenance mapping every non-trivial design choice to its academic or production citation. The highlights:
+
+- **Test-first execution.** Failing tests before implementation (Anthropic SWE-bench scaffold, CodePRM ACL 2025).
+- **Single-threaded by default.** Fan-out in `lhc-team` requires a written independence proof (Cognition "Don't Build Multi-Agents", SWE-bench Verified G6 > G7).
+- **Tool-grounded verification.** Counterpart peer review over same-context self-approval (CRITIC ICLR 2024, Huang et al. ICLR 2024).
+- **Context compaction over accumulation.** PreCompact hook re-injects agreements; skills use progressive disclosure (Chroma Context Rot 2025, arXiv:2510.05381).
+- **Hard-coded loop guard.** Three identical tool calls ⇒ strategy-switch; five ⇒ stop (Columbia DAPLab failure taxonomy Nov 2025).
+- **Permission rules as data.** Amp-style DSL in [`permissions.json`](permissions.json).
+
+---
+
+## Troubleshooting
+
+**"Unknown workflow" from `check-readiness.js`.** The workflow name must be lowercase and defined in [`scripts/readiness-registry.json`](scripts/readiness-registry.json).
+
+**Peer review verdict is `degraded`.** The counterpart CLI is missing. Install both `claude` and `codex` on your `PATH`, or accept degraded mode per session.
+
+**Hooks don't fire.** Confirm the plugin is active (`/plugin list`). Check for `DISABLE_LHC=1` or `LHC_SKIP_HOOKS` in your shell env.
+
+**Skill says "no plan found" when invoking `lhc-ralph`.** Run `lhc-ralplan` first. LHC refuses to invent plans inline.
+
+**"Same tool call 3×" loop-guard signal.** Three retries of the same fix is the signal to stop. Return to `lhc-ralplan` and revise. Do not attempt fix #4.
+
+**Notepad format drift.** Always use `scripts/write-notepad.js`. Hand-written entries will eventually be stripped by maintenance scripts.
+
+**Context rot / slow responses.** Invoke `/lhc-status` to see what's in flight. Consider clearing the session (`/clear` — the runtime will re-bootstrap) or aggressively referencing shared docs instead of pasting full contents.
+
+---
+
+## Updating
+
+LHC is personal-local by default. To pull new changes:
+
+```bash
+cd ~/plugins/let-him-cook
+git pull
+# Claude Code re-reads plugin contents on next session start
+```
+
+When the plugin itself is updated, re-run `/lhc-status` to confirm your runtime still matches the schema (old `~/.lhc/state/` is forward-compatible).
+
+---
+
+## Contributing
+
+LHC is designed for Wix internal engineering; contributions should be evidence-backed. New patterns added to the plugin require a matching entry in [`docs/evidence.md`](docs/evidence.md) citing at least one of:
+
+- A replicated academic result (2+ independent papers or production systems)
+- A top-10 SWE-bench / TerminalBench / TAU-bench scaffold that uses the pattern
+- An Anthropic engineering post, Cognition/Augment/Aider post-mortem, or equivalent primary source
+
+See [`skills/shared/iron-laws.md`](skills/shared/iron-laws.md) for the per-skill invariants, and [`skills/shared/rationalization-guard.md`](skills/shared/rationalization-guard.md) for the thoughts that lead around them.
+
+---
+
+## License
+
+UNLICENSED — internal Wix use only.

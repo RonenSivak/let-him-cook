@@ -8,10 +8,21 @@ when_to_use: A build, CI job, release, or rollout is failing and needs classific
 
 CI failures, PR build failures, release failures, rollout anomalies. Classifies the root cause. If a code fix is warranted, hands off to `lhc-ralplan` — never implements inline.
 
+<Iron_Law>
+NO FIX RECOMMENDATION WITHOUT ROOT-CAUSE EVIDENCE. "Probably flaky" is not a classification. A `flaky-test` label requires at least three runs of evidence.
+
+NO INLINE FIX FROM INSIDE BUILD-FIX. If a code change is needed, produce a plan via `lhc-ralplan` and stop. This skill classifies; it does not implement.
+
+See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-guard.md` for the thoughts that lead around them.
+</Iron_Law>
+
 <Required_Reading>
+- `../shared/iron-laws.md`
+- `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
+- `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
 </Required_Reading>
 
@@ -65,7 +76,13 @@ CI failures, PR build failures, release failures, rollout anomalies. Classifies 
 
 7. **Peer review** the triage conclusion via `peer-review.sh --mode analysis`.
 
-8. **Append to notepad** and STOP.
+8. **Append to notepad** (use the helper — never hand-format)
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+     --workflow build-fix --slug "<slug>" --cwd "$PWD" \
+     --kv artifact="<artifact-path>" --kv classification="<code|flaky-test|release|ownership|infra>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
+   ```
+   Then STOP.
 
 <Final_Checklist>
 - [ ] Classification is exactly one bucket

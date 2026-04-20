@@ -1,0 +1,80 @@
+{
+  "$schema": "https://raw.githubusercontent.com/wix-private/let-him-cook/main/permissions.schema.json",
+  "description": "LHC permission rules. Encodes the read-only external-systems governance as data, not doctrine. Patterned after Sourcegraph Amp's permission rule DSL. Read by agents; the runtime does not automatically enforce — these are the invariants skills must respect.",
+  "defaults": {
+    "internal_writes": "allow",
+    "external_writes": "deny"
+  },
+  "rules": [
+    {
+      "id": "local-workspace-edits",
+      "description": "Local file edits in the working repo and ~/.lhc are allowed by default.",
+      "match": { "tool": "Write|Edit", "path_prefix": ["$CWD", "~/.lhc"] },
+      "effect": "allow"
+    },
+    {
+      "id": "local-bash-read-only",
+      "description": "Read-only local bash (git status, ls, cat, test runs) is allowed.",
+      "match": { "tool": "Bash", "safe_commands": ["git status", "git diff", "git log", "ls", "cat", "test", "pytest", "npm test", "yarn test", "node --version"] },
+      "effect": "allow"
+    },
+    {
+      "id": "git-push-deny",
+      "description": "Pushing to remote is a shared-state action. Require explicit user request in the same turn.",
+      "match": { "tool": "Bash", "command_regex": "^git\\s+push\\b" },
+      "effect": "ask"
+    },
+    {
+      "id": "jira-writes-deny",
+      "description": "Jira create/update/comment/transition/delete are forbidden by default.",
+      "match": { "tool_family": "jira", "operation": "write|create|update|delete|comment|transition" },
+      "effect": "deny",
+      "unless": "user explicitly named the specific Jira write in this turn"
+    },
+    {
+      "id": "slack-writes-deny",
+      "description": "Slack post/reply/react/schedule are forbidden by default.",
+      "match": { "tool_family": "slack", "operation": "post|reply|react|schedule|update" },
+      "effect": "deny",
+      "unless": "user explicitly named the specific Slack action in this turn"
+    },
+    {
+      "id": "grafana-writes-deny",
+      "description": "Grafana dashboard/alert mutations are forbidden by default.",
+      "match": { "tool_family": "grafana", "operation": "write|create|update|delete|silence|ack" },
+      "effect": "deny",
+      "unless": "user explicitly named the specific Grafana change in this turn"
+    },
+    {
+      "id": "devex-writes-deny",
+      "description": "DevEx build retriggers, release mutations, and rollout actions are forbidden by default.",
+      "match": { "tool_family": "devex", "operation": "retrigger|rollback|promote|cancel|tag" },
+      "effect": "deny",
+      "unless": "user explicitly named the specific DevEx action in this turn"
+    },
+    {
+      "id": "github-pr-writes-deny",
+      "description": "PR comments, merges, closes are forbidden by default.",
+      "match": { "tool": "Bash", "command_regex": "^gh\\s+pr\\s+(comment|merge|close|review)" },
+      "effect": "deny",
+      "unless": "user explicitly named the specific PR write in this turn"
+    },
+    {
+      "id": "dangerous-shell-ask",
+      "description": "Any rm -rf, curl | sh, or sudo always requires explicit confirmation regardless of read-only context.",
+      "match": { "tool": "Bash", "command_regex": "rm\\s+-rf|curl.*\\|.*sh|^sudo\\s" },
+      "effect": "ask"
+    }
+  ],
+  "context_rules": {
+    "subagent": {
+      "description": "Subagents inherit main-thread rules and add: no direct external writes ever. Even if the main thread authorized a specific write, a subagent cannot execute it.",
+      "additional_deny": ["jira:*", "slack:*", "grafana:*", "devex:*", "github:write-pr"]
+    }
+  },
+  "notes": [
+    "This file is authoritative documentation for skills. The runtime does not auto-enforce it — agents must read and respect it.",
+    "If you are about to override a deny rule, say so out loud and quote the 'unless' clause the user satisfied.",
+    "Evidence: Sourcegraph Amp permission-rule DSL (ampcode.com/manual/appendix), Cline requires_approval flag (docs.cline.bot), LHC read-only-governance.md."
+  ]
+}

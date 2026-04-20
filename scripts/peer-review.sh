@@ -1,11 +1,21 @@
 #!/bin/sh
 set -eu
 
+# Enable Anthropic's 1-hour prompt cache for peer-review calls unless the caller
+# opted out. Cross-model review is highly cache-friendly (review prompts repeat
+# structure; diffs share prefixes). See Claude Code CHANGELOG for
+# ENABLE_PROMPT_CACHING_1H. No-op on Codex-side; Claude side gets the savings.
+: "${ENABLE_PROMPT_CACHING_1H:=1}"
+export ENABLE_PROMPT_CACHING_1H
+
 show_help() {
   printf '%s\n' \
     'Usage: sh peer-review.sh --leader <codex|claude> --mode <code-review|plan|investigation|conclusion|analysis> [--cwd <dir>] [--prompt-file <file>]' \
     '' \
-    'Reads the review prompt from --prompt-file or stdin and routes the task to the counterpart model.'
+    'Reads the review prompt from --prompt-file or stdin and routes the task to the counterpart model.' \
+    '' \
+    'Environment:' \
+    '  ENABLE_PROMPT_CACHING_1H=0   disable 1-hour prompt cache (default 1)'
 }
 
 LEADER=""

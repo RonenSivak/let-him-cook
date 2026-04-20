@@ -8,9 +8,20 @@ when_to_use: The user has a knowledge question about internal Wix systems, docs,
 
 "How does this work at Wix?" "What's the right internal pattern?" "Which service or doc explains this?" — this skill answers from internal sources and saves the answer as an artifact.
 
+<Iron_Law>
+NO CLAIM WITHOUT A SOURCE. Every non-trivial claim cites a doc URL, repo path, or PR ref. Quote the grounding passage when possible. Speculation is labeled speculation.
+
+NO EXTRAPOLATION. Conclusions stay scoped to evidence actually found. If a question cannot be answered from internal sources, say so explicitly — do not guess.
+
+See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-guard.md` for the thoughts that lead around them.
+</Iron_Law>
+
 <Required_Reading>
+- `../shared/iron-laws.md`
+- `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
+- `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
 </Required_Reading>
 
@@ -63,7 +74,13 @@ when_to_use: The user has a knowledge question about internal Wix systems, docs,
 
 7. **Save artifact** at `~/.lhc/artifacts/research-<slug>-<UTC-ISO>.md`. Include question, answer, evidence with links + one-line quote per claim, caveats, and an explicit "not verified" list for anything that could not be grounded.
 
-8. **Append to notepad** and STOP.
+8. **Append to notepad** (use the helper — never hand-format)
+   ```bash
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+     --workflow research --slug "<slug>" --cwd "$PWD" \
+     --kv artifact="<artifact-path>"
+   ```
+   Then STOP.
 
 <Final_Checklist>
 - [ ] Artifact saved under `~/.lhc/artifacts/`

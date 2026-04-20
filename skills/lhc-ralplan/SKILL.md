@@ -8,11 +8,22 @@ when_to_use: The user wants an up-front plan for a non-trivial Wix change, or th
 
 Substantial plans that need internal research, repo context, and a durable local artifact before any code is touched. This skill PRODUCES a plan file and STOPS. It never implements.
 
+<Iron_Law>
+NO PLAN IS APPROVED WITHOUT COUNTERPART PEER REVIEW. A plan with `peer_review: pending` is a draft, not a plan. Saving the file is not sign-off.
+
+NO STUB LANGUAGE. "TBD", "TODO", "similar to above", "implement later" are plan failures. Revise or stop.
+
+See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-guard.md` for the thoughts that lead around them.
+</Iron_Law>
+
 <Required_Reading>
+- `../shared/iron-laws.md`
+- `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
 - `../shared/subagent-catalog.md`
+- `../shared/notepad-schema.md`
 </Required_Reading>
 
 <Use_When>
@@ -62,10 +73,13 @@ Substantial plans that need internal research, repo context, and a durable local
    - `Task(subagent_type="let-him-cook:framework-standards-reviewer", …)` for convention checks
    - `Task(subagent_type="let-him-cook:architect", …)` for boundary review when the change is structural
 
+4a. **Standards brief** — if the plan will modify source files (not docs/config only), invoke `Skill("let-him-cook:lhc-standards")` with the target files and feature area. The brief will be saved at `~/.lhc/artifacts/standards-<slug>-<UTC-ISO>.md` and MUST be referenced from the plan's *Implementation steps* section. `lhc-ralph` reads the brief during execution; `lhc-review` reads it during review. Skip this step for doc-only or config-only plans.
+
 5. **Write the plan file** at `~/.lhc/plans/ralplan-<slug>-<UTC-ISO>.md`. Required sections:
    - Title + one-paragraph goal
    - Acceptance criteria (numbered, testable, concrete)
-   - Implementation steps (each with file paths; no stubs)
+   - **Standards brief link** (when step 4a ran): reference the artifact path so `lhc-ralph` and `lhc-review` read the same contract
+   - Implementation steps (each with file paths; no stubs; reference standards brief per-file guidance where applicable)
    - Risks + mitigations
    - Verification commands (copy-pasteable)
    - ADR block: Decision, Drivers, Alternatives considered, Why chosen, Consequences, Follow-ups
@@ -76,9 +90,11 @@ Substantial plans that need internal research, repo context, and a durable local
    ```
    If rejected, revise and re-review up to 3 times. If still rejected, save the latest plan, record the verdict, and stop.
 
-7. **Append to notepad**
+7. **Append to notepad** (use the helper — never hand-format)
    ```bash
-   printf -- "- %s  ralplan  %s  %s  plan=%s\n" "$(date -u +%FT%TZ)" "<slug>" "$PWD" "<plan-path>" >> ~/.lhc/notepad.md
+   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+     --workflow ralplan --slug "<slug>" --cwd "$PWD" \
+     --kv plan="<plan-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```
 
 8. **Report and STOP** — print the plan path and peer-review verdict, then tell the user to invoke `lhc-ralph` with the plan path when ready to execute. Do NOT invoke `lhc-ralph` yourself.
