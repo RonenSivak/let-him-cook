@@ -65,6 +65,14 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader codex --mode <mode> --prompt-file <input-path>
    ```
 
+   `peer-review.sh` mirrors all reviewer output to `~/.lhc/logs/peer-review/<mode>-<UTC>.log` and prints `[peer-review] streaming to: <path>` to stderr on start. **Surface that path to the user immediately** so they can `tail -f` it while the counterpart thinks. Set `LHC_PEER_REVIEW_NO_LOG=1` only if a caller needs pristine stdout.
+
+   **For live streaming of the counterpart's output into the chat**, launch `peer-review.sh` with `run_in_background: true` and attach the `Monitor` tool to the log file, e.g.:
+   ```
+   tail -F <log-path> | grep -E --line-buffered "thinking|tool_use|error|verdict|approved|rejected|^#"
+   ```
+   Prefer this pattern for long reviews (>30s) or when the user has asked to see the reviewer's reasoning. For quick reviews, the default foreground call is fine and the log path is enough.
+
 3. **For `code-review` mode, run two stages** (one call each, scoped prompts):
    - **Stage 1 — Spec compliance.** Prompt the counterpart with: the plan's acceptance criteria + the diff + a checklist asking "for each criterion N, does the diff satisfy it? Cite file:line evidence. If unmet, flag." Record verdict.
    - **Stage 2 — Code quality + standards compliance.** Prompt the counterpart with: the diff + the standards brief (`~/.lhc/artifacts/standards-<slug>-<UTC-ISO>.md`, if one exists) + a checklist asking "(a) correctness, minimality, test coverage against acceptance criteria; (b) adherence to the brief's Applied Rulings; (c) any violation of the brief's Non-negotiables (security, a11y, Wix SDK). Call out smells." Record verdict. If no standards brief exists and the change modifies source files, note this as a gap in the review artifact — it is a missed gate, not an automatic block.

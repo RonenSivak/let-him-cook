@@ -64,13 +64,47 @@ if [ -z "$LEADER" ]; then
   exit 1
 fi
 
+# Mirror all reviewer output to a tail-able log so callers can stream progress
+# in another terminal (tail -f) or via the Claude Code Monitor tool, instead of
+# blocking on a silent foreground call for 30-90s. LHC_PEER_REVIEW_NO_LOG=1
+# disables the tee for callers that need pristine stdout.
+LOG_PATH=""
+if [ "${LHC_PEER_REVIEW_NO_LOG:-0}" != "1" ]; then
+  LOG_DIR="${LHC_PEER_REVIEW_LOG_DIR:-$HOME/.lhc/logs/peer-review}"
+  mkdir -p "$LOG_DIR"
+  TS="$(date -u +%Y%m%dT%H%M%SZ)"
+  LOG_PATH="$LOG_DIR/${MODE}-${TS}-$$.log"
+  {
+    echo "# LHC peer-review log"
+    echo "# leader: $LEADER"
+    echo "# mode:   $MODE"
+    echo "# cwd:    ${CWD:-<unset>}"
+    echo "# prompt: ${PROMPT_FILE:-<stdin>}"
+    echo "# start:  $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "# tail:   tail -f $LOG_PATH"
+    echo "# ---"
+  } >"$LOG_PATH"
+  echo "[peer-review] streaming to: $LOG_PATH" >&2
+fi
+
+# stream() runs the reviewer command with line-buffered stdout+stderr merged
+# into the log while still returning them on stdout. When LOG_PATH is empty
+# (opt-out), it just runs the command.
+stream() {
+  if [ -n "$LOG_PATH" ]; then
+    "$@" 2>&1 | tee -a "$LOG_PATH"
+  else
+    "$@"
+  fi
+}
+
 if [ "$LEADER" = "codex" ]; then
   if ! command -v claude >/dev/null 2>&1; then
     echo "Claude CLI is required for counterpart review. Verify with: claude --version" >&2
     exit 2
   fi
 
-  claude -p "$PROMPT"
+  stream claude -p "$PROMPT"
   exit 0
 fi
 
@@ -81,14 +115,14 @@ if [ "$LEADER" = "claude" ]; then
   fi
 
   if [ "$MODE" = "code-review" ] && [ -n "$CWD" ]; then
-    codex review --title "LHC peer review" "$PROMPT"
+    stream codex review --title "LHC peer review" "$PROMPT"
     exit 0
   fi
 
   if [ -n "$CWD" ]; then
-    codex exec --skip-git-repo-check -C "$CWD" "$PROMPT"
+    stream codex exec --skip-git-repo-check -C "$CWD" "$PROMPT"
   else
-    codex exec --skip-git-repo-check "$PROMPT"
+    stream codex exec --skip-git-repo-check "$PROMPT"
   fi
   exit 0
 fi
