@@ -1,6 +1,6 @@
 ---
 name: lhc-investigate
-description: Investigates a Wix production issue using root-cause, grafana, and devex, saves findings to ~/.lhc/artifacts/investigate-*.md, and peer-reviews the conclusion. Use for production debugging, incident analysis, request-ID driven RCA. Does not implement fixes, post to Slack, mutate Jira, or retrigger builds.
+description: Investigates a Wix production issue using root-cause, grafana, grafana-datasource, and devex, saves findings to ~/.lhc/artifacts/investigate-*.md, and peer-reviews the conclusion. Use for production debugging, incident analysis, request-ID driven RCA. Does not implement fixes, post to Slack, mutate Jira, or retrigger builds.
 when_to_use: The user reports a prod issue, failing request, on-call page, or regression; or asks "what caused X" about a live system — never "how do I code the fix".
 ---
 
@@ -61,8 +61,11 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 3. **Use primary surfaces** — pull in parallel when lanes are independent:
    - `root-cause` for request-ID RCA
-   - `grafana` for logs, metrics, traces, incidents, alerts, on-call context
+   - `grafana` for dashboards, panels, alerts, incidents, on-call context (dashboard-shaped — `get_dashboard_by_uid`, `get_dashboard_panel_queries`, `list_incidents`)
+   - `grafana-datasource` for **raw Wix data queries** — `query_panorama`, `query_bi_events`, `query_domain_events`, `query_app_logs`, `query_access_logs`, `query_prometheus`, `query_loki`. Use this when "did the code emit?" vs "did the dashboard see?" needs separating, or when a dashboard's panel query needs to run stripped of variables.
    - `devex` for build/release/rollout/ownership correlation
+
+   **Canonical dashboard-empty diagnostic ladder**: (a) `get_dashboard_panel_queries` → extract the PromQL / Panorama expressions, (b) `query_panorama` / `query_prometheus` → run them directly with the user's time range, (c) if the raw query returns data, it's a dashboard variable / filter issue; if not, it's an emission / datasource / time-window issue.
 
 4. **Ensure runtime exists**
    ```bash
@@ -89,7 +92,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    Then STOP.
 
 <Final_Checklist>
-- [ ] Evidence gathered from at least two of root-cause / grafana / devex
+- [ ] Evidence gathered from at least two of root-cause / grafana / grafana-datasource / devex
 - [ ] Artifact saved under `~/.lhc/artifacts/`
 - [ ] Confidence stated explicitly with the evidence that would change it
 - [ ] Peer-review verdict recorded

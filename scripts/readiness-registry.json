@@ -3,6 +3,7 @@
     "mcp-s": [
       "devex",
       "grafana",
+      "grafana-datasource",
       "root-cause",
       "docs-schema",
       "jira",
@@ -50,6 +51,7 @@
       "mcp": [
         "devex",
         "grafana",
+        "grafana-datasource",
         "root-cause"
       ],
       "cli": [

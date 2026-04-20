@@ -39,10 +39,11 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 <Execution_Policy>
 - Source priority: `docs-schema` → `octocode` → `context7` (only for external dependencies). Pull from the highest-priority relevant source first.
+- Optional live surface: `grafana-datasource` — when the question is "what events does service X actually emit in prod?" or "which schema is in use right now?", `query_bi_events` / `query_panorama` answer from ground truth instead of docs. Treat as supporting, not primary; still cite every claim.
 - MUST save the research artifact at `~/.lhc/artifacts/research-<slug>-<UTC-ISO>.md`.
 - MUST keep conclusions scoped to evidence actually found. No extrapolating.
 - MUST NOT edit repo files.
-- Every non-trivial claim gets a source (doc URL, repo path, PR ref). Quote the passage that grounds the claim when possible.
+- Every non-trivial claim gets a source (doc URL, repo path, PR ref, or datasource query + response shape). Quote the passage that grounds the claim when possible.
 - If the research turns into a formal conclusion or plan, route through `lhc-review` for counterpart peer review.
 </Execution_Policy>
 
