@@ -22,6 +22,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
+- `../shared/handoff-protocol.md`
 - `../shared/subagent-catalog.md`
 - `../shared/notepad-schema.md`
 </Required_Reading>
@@ -86,10 +87,16 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - Verification commands (copy-pasteable)
    - ADR block: Decision, Drivers, Alternatives considered, Why chosen, Consequences, Follow-ups
 
-6. **Peer review** — route the plan to the counterpart model:
-   ```bash
-   sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader claude --mode plan --cwd "$PWD" --prompt-file <plan-path>
+6. **Peer review** — route the plan to the counterpart model. Use Claude Code's background-bash pattern (see `../shared/peer-review-governance.md`) because plan reviews typically take 60-180s:
    ```
+   Bash(
+     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode plan --cwd \"$PWD\" --prompt-file <plan-path>",
+     run_in_background: true,
+     timeout: 600000
+   )
+   → then poll with BashOutput(bash_id) every 10-20s until the "## Verdict" section appears.
+   ```
+   Capture the `[peer-review] ... log=<path>` line from stderr; that's your recovery trail if BashOutput stops streaming.
    If rejected, revise and re-review up to 3 times. If still rejected, save the latest plan, record the verdict, and stop.
 
 7. **Append to notepad** (use the helper — never hand-format)
@@ -99,7 +106,22 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
      --kv plan="<plan-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```
 
-8. **Report and STOP** — print the plan path and peer-review verdict, then tell the user to invoke `lhc-ralph` with the plan path when ready to execute. Do NOT invoke `lhc-ralph` yourself.
+8. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+   ```
+   LHC HANDOFF
+   - Completed: ralplan
+   - Slug: <slug>
+   - Cwd: <pwd>
+   - Artifact: <plan-path>
+   - Standards brief: <brief-path>    (if step 4a ran)
+   - Verdict: <approved|approved-with-changes|rejected|degraded>
+   - Next skill: let-him-cook:lhc-ralph
+   - Pass to next skill:
+       plan=<plan-path>
+       standards-brief=<brief-path>   (if applicable)
+   ```
+
+   Do NOT invoke `lhc-ralph` yourself — the user decides when to execute.
 
 <Final_Checklist>
 - [ ] Plan file exists under `~/.lhc/plans/`

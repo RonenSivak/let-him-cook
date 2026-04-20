@@ -21,6 +21,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
+- `../shared/handoff-protocol.md`
 - `../shared/wix-tool-surfaces.md`
 </Required_Reading>
 
@@ -69,15 +70,21 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js <workflow> --json
    ```
 
-5. **Output the hand-off block and STOP**:
+5. **Output the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
    ```
-   LHC Interview
-   - Classified as: <workflow>
-   - Readiness: <ready|blocked|degraded>
-   - Context clues: <short list>
+   LHC HANDOFF
+   - Completed: interview
    - Cwd: <pwd>
-   - Next: invoke `Skill("let-him-cook:<skill-name>")`
+   - Classification: <workflow>
+   - Readiness: <ready|blocked|degraded>
+   - Context clues: <short list — PR numbers, service names, request IDs>
+   - Next skill: let-him-cook:lhc-<workflow>
+   - Pass to next skill:
+       cwd=<pwd>
+       context-clues=<short list>
    ```
+
+   The `Pass to next skill` block makes the context machine-parseable so the next skill can pick it up without re-classifying.
 
 <Final_Checklist>
 - [ ] Classification recorded in the session state file

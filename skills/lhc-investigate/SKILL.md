@@ -22,6 +22,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
+- `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
 </Required_Reading>
@@ -80,9 +81,14 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - `Task(subagent_type="let-him-cook:incident-investigator", …)` for cross-surface correlation
    - `Task(subagent_type="let-him-cook:build-release-operator", …)` for release/rollout correlation
 
-6. **Peer review the conclusion**
-   ```bash
-   sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader claude --mode investigation --cwd "$PWD" --prompt-file <investigation-summary-path>
+6. **Peer review the conclusion** — use the background-bash pattern (see `../shared/peer-review-governance.md`); investigation reviews typically take 60-180s:
+   ```
+   Bash(
+     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode investigation --cwd \"$PWD\" --prompt-file <investigation-summary-path>",
+     run_in_background: true,
+     timeout: 600000
+   )
+   → poll BashOutput until "## Verdict" appears.
    ```
 
 7. **Save the artifact** at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md`. Required sections: timeline (UTC), evidence per surface with links/request IDs, correlation across surfaces, root-cause hypothesis with confidence, owner, peer-review verdict, residual gaps.
@@ -93,7 +99,22 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
      --workflow investigate --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>" --kv conf="<low|medium|high>"
    ```
-   Then STOP.
+
+9. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+   ```
+   LHC HANDOFF
+   - Completed: investigate
+   - Slug: <slug>
+   - Cwd: <pwd>
+   - Artifact: <artifact-path>
+   - Verdict: <approved|approved-with-changes|rejected|degraded>
+   - Confidence: <low|medium|high>
+   - Next skill: let-him-cook:lhc-ralplan    (only if a code fix is warranted)
+   - Pass to next skill:
+       investigation-artifact=<artifact-path>
+   ```
+
+   Omit the last two lines if no fix is warranted — an incident conclusion can be the terminal step.
 
 <Final_Checklist>
 - [ ] Evidence gathered from at least two of root-cause / grafana / grafana-datasource / devex

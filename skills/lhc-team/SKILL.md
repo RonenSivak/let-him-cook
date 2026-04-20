@@ -27,6 +27,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/peer-review-governance.md`
+- `../shared/handoff-protocol.md`
 - `../shared/subagent-catalog.md`
 - `../shared/notepad-schema.md`
 - `../shared/commit-trailers.md`
@@ -78,7 +79,16 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 5. **Synthesize** per-lane outputs into the final diff + evidence package.
 
-6. **Peer review** the final diff and synthesis via `peer-review.sh --mode code-review`.
+6. **Peer review** the final diff and synthesis — use the background-bash pattern (see `../shared/peer-review-governance.md`):
+   ```
+   git diff | head -600 > /tmp/lhc-team-diff.txt
+   Bash(
+     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode code-review --cwd \"$PWD\" --prompt-file /tmp/lhc-team-diff.txt",
+     run_in_background: true,
+     timeout: 600000
+   )
+   → poll BashOutput until "## Verdict" appears.
+   ```
 
 7. **Save artifact** at `~/.lhc/artifacts/team-<slug>-<UTC-ISO>.md` — lane map, independence proof, per-lane summary, aggregated files touched, verification evidence, peer-review verdict.
 
@@ -88,7 +98,19 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
      --workflow team --slug "<slug>" --cwd "$PWD" \
      --kv plan="<plan-path>" --kv artifact="<team-artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```
-   Then STOP.
+
+9. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+   ```
+   LHC HANDOFF
+   - Completed: team
+   - Slug: <slug>
+   - Cwd: <pwd>
+   - Artifact: <team-artifact-path>
+   - Plan: <plan-path>
+   - Verdict: <approved|approved-with-changes|rejected|degraded>
+   ```
+
+   Team is terminal — the user takes the diff from here.
 
 <Final_Checklist>
 - [ ] Plan file existed before dispatch

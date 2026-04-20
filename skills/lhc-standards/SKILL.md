@@ -26,6 +26,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/coding-standards-policy.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
+- `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
 </Required_Reading>
@@ -148,7 +149,18 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
      --kv artifact="<brief-path>" --kv conf="<low|medium|high>"
    ```
 
-9. **Report and STOP.** Print the brief path and a one-line summary ("brief saved; high confidence; 2 ecosystem overrides on testing and security"). Do not invoke another skill.
+9. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+   ```
+   LHC HANDOFF
+   - Completed: standards
+   - Slug: <slug>
+   - Cwd: <pwd>
+   - Artifact: <brief-path>
+   - Confidence: <low|medium|high>
+   - One-line summary: <e.g. "2 ecosystem overrides on testing and security">
+   ```
+
+   Standards is terminal inside its own invocation, but the brief is almost always consumed by `lhc-ralplan` (as step 4a) or referenced directly by `lhc-ralph` / `lhc-review`. Do not invoke those skills yourself.
 
 <Final_Checklist>
 - [ ] Standards brief saved under `~/.lhc/artifacts/`

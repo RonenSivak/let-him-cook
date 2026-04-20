@@ -26,6 +26,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
+- `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 </Required_Reading>
 
@@ -56,14 +57,19 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow review --source workflow --cwd "$PWD" --task "<input-path>" --peer-review-required
    ```
 
-2. **Route by leader** — inside Claude Code (default):
-   ```bash
-   sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader claude --mode <mode> --cwd "$PWD" --prompt-file <input-path>
+2. **Route by leader** — use the background-bash pattern (see `../shared/peer-review-governance.md`); reviews typically take 30-180s.
+
+   Inside Claude Code (default):
    ```
-   Inside Codex:
-   ```bash
-   sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader codex --mode <mode> --prompt-file <input-path>
+   Bash(
+     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode <mode> --cwd \"$PWD\" --prompt-file <input-path>",
+     run_in_background: true,
+     timeout: 600000
+   )
+   → poll BashOutput(bash_id) every 10-20s until "## Verdict" appears.
    ```
+
+   Inside Codex, the equivalent uses `shell` with `&` + `tail -f` on the log path.
 
    `peer-review.sh` mirrors all reviewer output to `~/.lhc/logs/peer-review/<mode>-<UTC>.log` and prints `[peer-review] streaming to: <path>` to stderr on start. **Surface that path to the user immediately** so they can `tail -f` it while the counterpart thinks. Set `LHC_PEER_REVIEW_NO_LOG=1` only if a caller needs pristine stdout.
 
@@ -90,7 +96,19 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
      --workflow review --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<review-artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```
-   Then STOP.
+
+7. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+   ```
+   LHC HANDOFF
+   - Completed: review
+   - Slug: <slug>
+   - Cwd: <pwd>
+   - Artifact: <review-artifact-path>
+   - Reviewed input: <input-artifact-path>
+   - Verdict: <approved|approved-with-changes|rejected|degraded>
+   ```
+
+   Review is terminal — the user decides what to do with the verdict (revise and re-review, proceed to execute, abandon).
 
 <Final_Checklist>
 - [ ] Input artifact was NOT modified

@@ -21,6 +21,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
+- `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
 </Required_Reading>
@@ -84,7 +85,18 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
      --workflow research --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<artifact-path>"
    ```
-   Then STOP.
+
+9. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+   ```
+   LHC HANDOFF
+   - Completed: research
+   - Slug: <slug>
+   - Cwd: <pwd>
+   - Artifact: <artifact-path>
+   - Confidence: <low|medium|high>
+   ```
+
+   Research is terminal. If the user wants to plan a code change from here, they invoke `lhc-ralplan` explicitly — this skill does not chain.
 
 <Final_Checklist>
 - [ ] Artifact saved under `~/.lhc/artifacts/`

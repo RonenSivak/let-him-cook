@@ -26,6 +26,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
+- `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/commit-trailers.md`
 - `../../docs/runtime-contract.md`
@@ -81,9 +82,15 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 5. **Verify against the whole plan** — dispatch `Task(subagent_type="let-him-cook:verifier", …)` to gate each acceptance criterion against fresh evidence.
 
-6. **Peer review the final diff**
-   ```bash
-   sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader claude --mode code-review --cwd "$PWD" --prompt-file <(git diff | head -400)
+6. **Peer review the final diff** — use the background-bash pattern (see `../shared/peer-review-governance.md`); diff reviews typically take 60-180s:
+   ```
+   git diff | head -400 > /tmp/lhc-ralph-diff.txt
+   Bash(
+     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode code-review --cwd \"$PWD\" --prompt-file /tmp/lhc-ralph-diff.txt",
+     run_in_background: true,
+     timeout: 600000
+   )
+   → poll BashOutput until "## Verdict" appears.
    ```
 
 7. **Write the execution artifact** at `~/.lhc/artifacts/execute-<slug>-<UTC-ISO>.md`. Include:
@@ -100,7 +107,18 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
      --kv plan="<plan-path>" --kv artifact="<artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```
 
-9. **Report and STOP.**
+9. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+   ```
+   LHC HANDOFF
+   - Completed: ralph
+   - Slug: <slug>
+   - Cwd: <pwd>
+   - Artifact: <execute-artifact-path>
+   - Plan: <plan-path>
+   - Verdict: <approved|approved-with-changes|rejected|degraded>
+   ```
+
+   No Next skill line — ralph is terminal. The user takes the diff from here (commit, PR, whatever).
 
 <Final_Checklist>
 - [ ] Plan file was read and used as the spec

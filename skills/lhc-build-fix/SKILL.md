@@ -22,6 +22,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
 - `../shared/peer-review-governance.md`
+- `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
 </Required_Reading>
@@ -76,7 +77,15 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - `ownership`: list top candidate owners with evidence, STOP.
    - `infra`: route to DevEx/SRE, STOP.
 
-7. **Peer review** the triage conclusion via `peer-review.sh --mode analysis`.
+7. **Peer review** the triage conclusion — use the background-bash pattern (see `../shared/peer-review-governance.md`):
+   ```
+   Bash(
+     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode analysis --cwd \"$PWD\" --prompt-file <triage-artifact-path>",
+     run_in_background: true,
+     timeout: 600000
+   )
+   → poll BashOutput until "## Verdict" appears.
+   ```
 
 8. **Append to notepad** (use the helper — never hand-format)
    ```bash
@@ -84,7 +93,22 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
      --workflow build-fix --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<artifact-path>" --kv classification="<code|flaky-test|release|ownership|infra>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```
-   Then STOP.
+
+9. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+   ```
+   LHC HANDOFF
+   - Completed: build-fix
+   - Slug: <slug>
+   - Cwd: <pwd>
+   - Artifact: <triage-artifact-path>
+   - Classification: <code|flaky-test|release|ownership|infra>
+   - Verdict: <approved|approved-with-changes|rejected|degraded>
+   - Next skill: let-him-cook:lhc-ralplan         (only if classification=code)
+   - Pass to next skill:
+       triage-artifact=<triage-artifact-path>
+   ```
+
+   For non-code classifications, omit the last two lines and state the routing recommendation inline (release → release owner, infra → DevEx/SRE, etc.).
 
 <Final_Checklist>
 - [ ] Classification is exactly one bucket
