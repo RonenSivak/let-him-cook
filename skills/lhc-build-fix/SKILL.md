@@ -63,6 +63,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - `Task(subagent_type="let-him-cook:build-release-operator", …)` for devex + octocode classification
    - `Task(subagent_type="let-him-cook:repo-cartographer", …)` for repo/PR archaeology
 
+   **Optional owner-channel correlation (READ-ONLY)**: once DevEx returns the owning team, `code_owners_for_path` typically surfaces a Slack channel. Use `slack` → `search-messages` / `get_channel_history` on that channel to check whether the failure has already been reported, acknowledged, or hand-waved as known-flaky. This is signal for the classification bucket, not a substitute for DevEx run evidence. Do NOT call `post_message`, `reply_to_thread`, `schedule_message`, or any other mutating slack tool.
+
 4. **Classify** into exactly one of: `code` / `flaky-test` / `release` / `ownership` / `infra`.
 
 5. **Save the triage artifact** at `~/.lhc/artifacts/build-fix-<slug>-<UTC-ISO>.md`. Include classification, evidence per surface, owning team, recommended next action.

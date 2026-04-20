@@ -73,6 +73,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - `Task(subagent_type="let-him-cook:framework-standards-reviewer", …)` for convention checks
    - `Task(subagent_type="let-him-cook:architect", …)` for boundary review when the change is structural
 
+   **Optional ticket context (READ-ONLY)**: if the user references a Jira ticket (or one is obvious from the request), pull it in via `jira` → `get-issues` and use the description / acceptance criteria as primary requirements input for the plan. Cite the ticket key in the plan's ADR "Drivers" block. Do NOT call `create-issue`, `comment-on-issue`, `transition-issue`, or any other mutating jira tool.
+
 4a. **Standards brief** — if the plan will modify source files (not docs/config only), invoke `Skill("let-him-cook:lhc-standards")` with the target files and feature area. The brief will be saved at `~/.lhc/artifacts/standards-<slug>-<UTC-ISO>.md` and MUST be referenced from the plan's *Implementation steps* section. `lhc-ralph` reads the brief during execution; `lhc-review` reads it during review. Skip this step for doc-only or config-only plans.
 
 5. **Write the plan file** at `~/.lhc/plans/ralplan-<slug>-<UTC-ISO>.md`. Required sections:

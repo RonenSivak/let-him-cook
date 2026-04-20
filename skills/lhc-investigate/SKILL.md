@@ -1,6 +1,6 @@
 ---
 name: lhc-investigate
-description: Investigates a Wix production issue using root-cause, grafana, grafana-datasource, and devex, saves findings to ~/.lhc/artifacts/investigate-*.md, and peer-reviews the conclusion. Use for production debugging, incident analysis, request-ID driven RCA. Does not implement fixes, post to Slack, mutate Jira, or retrigger builds.
+description: Investigates a Wix production issue using root-cause, grafana, grafana-datasource, and devex (with optional read-only jira + slack context), saves findings to ~/.lhc/artifacts/investigate-*.md, and peer-reviews the conclusion. Use for production debugging, incident analysis, request-ID driven RCA. Does not implement fixes, post to Slack, mutate Jira, or retrigger builds.
 when_to_use: The user reports a prod issue, failing request, on-call page, or regression; or asks "what caused X" about a live system — never "how do I code the fix".
 ---
 
@@ -66,6 +66,10 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - `devex` for build/release/rollout/ownership correlation
 
    **Canonical dashboard-empty diagnostic ladder**: (a) `get_dashboard_panel_queries` → extract the PromQL / Panorama expressions, (b) `query_panorama` / `query_prometheus` → run them directly with the user's time range, (c) if the raw query returns data, it's a dashboard variable / filter issue; if not, it's an emission / datasource / time-window issue.
+
+   **Optional supporting surfaces (READ-ONLY — write tools are policy-blocked by the working agreement)**:
+   - `jira` — `get-issues`, `get-issue-changelog`, `list-projects` to correlate the symptom with existing tickets and identify the owner ticket. Do NOT call `create-issue`, `comment-on-issue`, `transition-issue`, or any other mutating tool.
+   - `slack` — `search-messages`, `get_channel_history`, `get_thread_replies` to check whether the symptom is already being discussed in #incidents-prod / a support channel / the owner channel. Do NOT call `post_message`, `reply_to_thread`, `schedule_message`, or any other mutating tool.
 
 4. **Ensure runtime exists**
    ```bash
