@@ -47,7 +47,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 1. **Initialize workflow state**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow interview --source workflow --cwd "$PWD" --task "<user request>"
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/runtime-touch.js --workflow interview --source workflow --cwd "$PWD" --task "<user request>"
    ```
 
 2. **Classify** the request into exactly one of:
@@ -67,7 +67,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 4. **Run readiness**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js <workflow> --json
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/check-readiness.js <workflow> --json
    ```
 
 5. **Output the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):

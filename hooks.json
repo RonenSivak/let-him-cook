@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ./scripts/runtime-touch.js --source session-start --cwd \"$PWD\" >/dev/null",
+            "command": "node \"${CODEX_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}\"/scripts/runtime-touch.js --source session-start --cwd \"$PWD\" >/dev/null",
             "timeout": 5
           }
         ]
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh ./scripts/pretool-runtime-bootstrap.sh",
+            "command": "sh \"${CODEX_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}\"/scripts/pretool-runtime-bootstrap.sh",
             "timeout": 3
           }
         ]
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ./scripts/precompact-reinject.js",
+            "command": "node \"${CODEX_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}\"/scripts/precompact-reinject.js",
             "timeout": 3
           }
         ]
@@ -43,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ./scripts/stop-reminder.js",
+            "command": "node \"${CODEX_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}\"/scripts/stop-reminder.js",
             "timeout": 3
           }
         ]

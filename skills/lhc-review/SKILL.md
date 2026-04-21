@@ -54,7 +54,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 1. **Initialize workflow state**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow review --source workflow --cwd "$PWD" --task "<input-path>" --peer-review-required
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/runtime-touch.js --workflow review --source workflow --cwd "$PWD" --task "<input-path>" --peer-review-required
    ```
 
 2. **Route by leader** — use the background-bash pattern (see `../shared/peer-review-governance.md`); reviews typically take 30-180s.
@@ -62,7 +62,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    Inside Claude Code (default):
    ```
    Bash(
-     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode <mode> --cwd \"$PWD\" --prompt-file <input-path>",
+     command: "sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode <mode> --cwd \"$PWD\" --prompt-file <input-path>",
      run_in_background: true,
      timeout: 600000
    )
@@ -92,7 +92,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 6. **Append to notepad** (use the helper — never hand-format)
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow review --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<review-artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```

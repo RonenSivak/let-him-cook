@@ -19,10 +19,10 @@ All reviews go through [`scripts/peer-review.sh`](../../scripts/peer-review.sh).
 
 ## Invocation pattern (critical)
 
-Peer review typically takes **30-180 seconds**. A synchronous Bash tool call blocks the session with no visible progress and may hit the 2-minute default timeout. Every skill that invokes peer review **must** use Claude Code's background-bash pattern:
+Peer review typically takes **30-180 seconds**. A synchronous shell call blocks the session with no visible progress and may hit the default timeout. Every skill that invokes peer review **must** use the host CLI's background-shell pattern:
 
 ```
-1. Bash(command="sh $CLAUDE_PLUGIN_ROOT/scripts/peer-review.sh --leader claude --mode <mode> --cwd \"$PWD\" --prompt-file <path>", run_in_background=true, timeout=600000)
+1. Shell(command="sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode <mode> --cwd \"$PWD\" --prompt-file <path>", run_in_background=true, timeout=600000)
    → returns { bash_id }
 
 2. Capture the [peer-review] startup line printed to stderr; it names the log file for recovery.
@@ -34,12 +34,12 @@ Peer review typically takes **30-180 seconds**. A synchronous Bash tool call blo
 4. On completion, parse the Verdict line.
 ```
 
-Inside Codex, the equivalent is `shell` with background + a `tail -f` on the log path.
+`peer-review.sh` auto-detects the current leader from `CODEX_PLUGIN_ROOT` / `CLAUDE_PLUGIN_ROOT`, so shared skill docs do not need to hardcode `--leader`.
 
 For quick reviews (< 30s expected) the foreground call pattern is acceptable:
 
 ```bash
-sh "$CLAUDE_PLUGIN_ROOT"/scripts/peer-review.sh --leader claude --mode plan --prompt-file <path>
+sh "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/peer-review.sh --mode plan --prompt-file <path>
 ```
 
 ## Modes

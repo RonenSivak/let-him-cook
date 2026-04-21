@@ -55,17 +55,17 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 1. **Initialize workflow state**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow ralplan --source workflow --cwd "$PWD" --task "<user request>" --peer-review-required
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/runtime-touch.js --workflow ralplan --source workflow --cwd "$PWD" --task "<user request>" --peer-review-required
    ```
 
 2. **Run readiness**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js ralplan --json
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/check-readiness.js ralplan --json
    ```
 
 3. **Ensure runtime**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/ensure-runtime.js >/dev/null
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/ensure-runtime.js >/dev/null
    ```
 
 4. **Ground the plan in evidence** — dispatch subagents in parallel when lanes are independent:
@@ -90,7 +90,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 6. **Peer review** — route the plan to the counterpart model. Use Claude Code's background-bash pattern (see `../shared/peer-review-governance.md`) because plan reviews typically take 60-180s:
    ```
    Bash(
-     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode plan --cwd \"$PWD\" --prompt-file <plan-path>",
+     command: "sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode plan --cwd \"$PWD\" --prompt-file <plan-path>",
      run_in_background: true,
      timeout: 600000
    )
@@ -101,7 +101,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 7. **Append to notepad** (use the helper — never hand-format)
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow ralplan --slug "<slug>" --cwd "$PWD" \
      --kv plan="<plan-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```

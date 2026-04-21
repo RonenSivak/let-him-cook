@@ -42,7 +42,7 @@ See `../shared/iron-laws.md` for all invariants.
 
 1. **Bootstrap runtime**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/ensure-runtime.js --json
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/ensure-runtime.js --json
    ```
 
 2. **Collect runtime state**
@@ -65,7 +65,7 @@ See `../shared/iron-laws.md` for all invariants.
 5. **Readiness per workflow**
    ```bash
    for wf in interview ralplan ralph team investigate build-fix research review; do
-     node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js "$wf" --json 2>/dev/null \
+     node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/check-readiness.js "$wf" --json 2>/dev/null \
        | node -e 'let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{try{const o=JSON.parse(s);console.log(`${o.workflow.padEnd(12)} ${o.status}${o.missingMcp.length?" missing="+o.missingMcp.join(","):""}`)}catch{console.log("??")}})'
    done
    ```

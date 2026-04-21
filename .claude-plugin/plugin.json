@@ -1,14 +1,14 @@
 {
   "name": "let-him-cook",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Home-local Claude Code plugin for Wix internal engineering workflows.",
   "author": {
     "name": "Ronensi",
     "email": "ronensi@wix.com",
     "url": "https://github.com/ronensi"
   },
-  "homepage": "https://mcp-s-connect.wewix.net/mcp-servers",
-  "repository": "https://github.com/wix-private/mcp-servers",
+  "homepage": "https://github.com/RonenSivak/let-him-cook",
+  "repository": "https://github.com/RonenSivak/let-him-cook",
   "license": "UNLICENSED",
   "keywords": [
     "wix",

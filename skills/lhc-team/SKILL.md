@@ -58,7 +58,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 1. **Initialize workflow state**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow team --source workflow --cwd "$PWD" --task "<plan-path>" --peer-review-required
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/runtime-touch.js --workflow team --source workflow --cwd "$PWD" --task "<plan-path>" --peer-review-required
    ```
 
 2. **Write the independence proof** (inline, before any fan-out). For each candidate lane enumerate:
@@ -83,7 +83,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    ```
    git diff | head -600 > /tmp/lhc-team-diff.txt
    Bash(
-     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode code-review --cwd \"$PWD\" --prompt-file /tmp/lhc-team-diff.txt",
+     command: "sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode code-review --cwd \"$PWD\" --prompt-file /tmp/lhc-team-diff.txt",
      run_in_background: true,
      timeout: 600000
    )
@@ -94,7 +94,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 8. **Append to notepad** (use the helper — never hand-format)
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow team --slug "<slug>" --cwd "$PWD" \
      --kv plan="<plan-path>" --kv artifact="<team-artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```

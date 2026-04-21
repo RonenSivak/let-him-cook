@@ -6,7 +6,7 @@ when_to_use: Session start inside a Wix repo, or when the user asks "what is LHC
 
 # Using LHC
 
-LHC ("Let Him Cook") is the Wix-specific workflow layer on Claude Code. It is the Claude-side twin of an equivalent Codex plugin. This skill tells the agent how to pick the right LHC skill, what the working agreements are, and which invariants override the default Claude Code behavior.
+LHC ("Let Him Cook") is the Wix-specific workflow layer shared by Claude Code and Codex. This skill tells the agent how to pick the right LHC skill, what the working agreements are, and which invariants override the default host behavior.
 
 ## The one-slide mental model
 
@@ -26,7 +26,7 @@ All of them persist under ~/.lhc/. Major conclusions gate on counterpart peer re
 
 ## Working agreements (override defaults)
 
-These override the default Claude Code posture for the duration of any LHC workflow. Each rule is backed by research or production evidence — see `docs/evidence.md` for the citation trail.
+These override the default host-agent posture for the duration of any LHC workflow. Each rule is backed by research or production evidence — see `docs/evidence.md` for the citation trail.
 
 - **Read-only by default.** No Jira writes, no Slack posts, no PR comments, no Grafana mutations, no build retriggers — unless the user explicitly authorizes the specific write in the current turn. Permission rules are encoded as data in `permissions.json`.
 - **Counterpart peer review is mandatory.** For plans, diffs, investigations, and incident conclusions. Self-approval in the same context is forbidden. `scripts/peer-review.sh` is the only mechanism that satisfies this gate. *Evidence: CRITIC (Gou et al. ICLR 2024), Huang et al. ICLR 2024 — intrinsic self-correction degrades without an external oracle.*
@@ -41,7 +41,7 @@ These override the default Claude Code posture for the duration of any LHC workf
 
 ## Invocation style
 
-**Prefer explicit invocation over auto-trigger.** Skill descriptions describe triggering conditions, but Claude Code's keyword-based auto-invocation has known reliability gaps (r/claude Oct 2025 survey: 47 skills tested, trigger unreliability was a top complaint). When you know the workflow you want, invoke it by name:
+**Prefer explicit invocation over auto-trigger.** Skill descriptions describe triggering conditions, but host-side keyword auto-invocation has known reliability gaps (r/claude Oct 2025 survey: 47 skills tested, trigger unreliability was a top complaint). When you know the workflow you want, invoke it by name:
 
 - `/lhc-ralplan` over "plan this for me"
 - `/lhc-investigate` over "look at this prod issue"
@@ -67,7 +67,7 @@ Match the user's request to the skill before doing anything else:
 
 ## Kill switches
 
-Environment flags disable LHC enforcement when the user needs a vanilla Claude Code session:
+Environment flags disable LHC enforcement when the user needs a vanilla Claude Code or Codex session:
 
 - `DISABLE_LHC=1` — treat LHC as absent: no hooks fire, skills are not auto-invoked, working agreements do not override defaults.
 - `LHC_SKIP_HOOKS=precompact,stop` — disable specific hooks while keeping the rest.
@@ -76,7 +76,7 @@ Surface the kill switches if the user says "turn off LHC", "disable the plugin",
 
 ## Anti-patterns
 
-- **Treating the agent catalog in CLAUDE.md as code.** Only agents with files under `agents/*.md` are real. The catalog reflects aspiration when a role is listed but no file exists.
+- **Treating the contract files as code.** Only roles with files under `prompts/*.md` or `agents/*.md` are real. Catalog entries in `AGENTS.md` / `CLAUDE.md` do not create runnable roles by themselves.
 - **Self-approval.** "I already reviewed it mentally" is not peer review.
 - **Silent degraded mode.** Missing MCPs cannot be papered over with plausible-sounding output.
 - **Polite-stop reporting.** Reporting "I approved the plan" before writing the file and running peer review. The only terminal states are: artifact saved + verdict recorded, or explicit refusal + reason.
@@ -84,7 +84,7 @@ Surface the kill switches if the user says "turn off LHC", "disable the plugin",
 
 ## Where to go next
 
-- Full working contract: `CLAUDE.md` at the plugin root.
+- Full working contract: `AGENTS.md` (Codex) / `CLAUDE.md` (Claude) at the plugin root.
 - **Research provenance** (why LHC is shaped this way): `docs/evidence.md`.
 - Invariants per skill: `skills/shared/iron-laws.md`.
 - How to resist rationalizing around a rule: `skills/shared/rationalization-guard.md`.

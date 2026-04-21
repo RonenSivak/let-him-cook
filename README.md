@@ -48,7 +48,7 @@ LHC is a self-contained plugin directory. Install it once per host CLI. The plug
 
 ```bash
 # 1. Clone or place the plugin wherever you keep plugins.
-git clone <repo-url> ~/plugins/let-him-cook
+git clone https://github.com/RonenSivak/let-him-cook.git ~/plugins/let-him-cook
 
 # 2. Register your local plugins directory as a marketplace.
 claude /plugin marketplace add ~/plugins
@@ -75,19 +75,23 @@ After any install method, restart Claude Code and run `/plugin list` to confirm 
 
 ### Codex
 
+As of Codex CLI `0.118.0`, plugin support is wired through the local marketplace manifest and `~/.codex/config.toml`; the old plugin-list CLI surface is gone. Use the installer in this repo:
+
 ```bash
-# 1. Copy or symlink the plugin into Codex's plugins directory.
-mkdir -p ~/.codex/plugins
-ln -s "$(pwd)" ~/.codex/plugins/let-him-cook
-
-# 2. Register in Codex's marketplace manifest.
-mkdir -p ~/.agents/plugins
-# Add this entry to ~/.agents/plugins/marketplace.json:
-#   { "name": "let-him-cook-local", "source": "~/.codex/plugins/let-him-cook" }
-
-# 3. Restart Codex. Open the plugin directory and activate "LHC".
-codex plugin list
+git clone https://github.com/RonenSivak/let-him-cook.git ~/plugins/let-him-cook
+cd ~/plugins/let-him-cook
+node scripts/install-codex-plugin.js
 ```
+
+The installer:
+
+- symlinks this repo into `~/.codex/plugins/let-him-cook`
+- creates or updates `~/.agents/plugins/marketplace.json`
+- enables `[plugins."let-him-cook@ronensi-local"]` in `~/.codex/config.toml`
+
+Use `node scripts/install-codex-plugin.js --dry-run` to inspect the changes first.
+
+If `~/.codex/plugins/let-him-cook` already exists as a separate checkout, move it aside or keep updating that checkout directly before switching to the symlink installer.
 
 ### Verify
 
@@ -98,11 +102,11 @@ After install:
 claude /plugin list
 # Look for: let-him-cook  (active)
 
-# Codex
-codex plugin list
+# Codex registry state
+grep -nE 'let-him-cook@ronensi-local|let-him-cook' ~/.codex/config.toml ~/.agents/plugins/marketplace.json
 
-# LHC's own runtime check (works in either CLI):
-claude /lhc-status      # or: codex /lhc-status
+# Inside either interactive host:
+/lhc-status
 ```
 
 `/lhc-status` boots the runtime, confirms the hooks fired, and prints a per-workflow readiness snapshot.
@@ -235,10 +239,11 @@ External-writes governance is encoded as data in [`permissions.json`](permission
 Counterpart-model review always routes through [`scripts/peer-review.sh`](scripts/peer-review.sh):
 
 ```bash
-sh $CLAUDE_PLUGIN_ROOT/scripts/peer-review.sh --leader claude --mode <mode> --prompt-file <file>
+LHC_PLUGIN_ROOT="${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"
+sh "$LHC_PLUGIN_ROOT"/scripts/peer-review.sh --mode <mode> --prompt-file <file>
 ```
 
-Modes: `code-review`, `plan`, `investigation`, `conclusion`, `analysis`. If the counterpart CLI is absent, the script exits non-zero and the calling skill records the verdict as `degraded`.
+Modes: `code-review`, `plan`, `investigation`, `conclusion`, `analysis`. `peer-review.sh` auto-detects whether it was invoked from Codex or Claude via the plugin-root environment variables. If the counterpart CLI is absent, the script exits non-zero and the calling skill records the verdict as `degraded`.
 
 ---
 
@@ -274,7 +279,7 @@ Tab-separated notepad format is documented in [`skills/shared/notepad-schema.md`
 
 ## Design principles
 
-See [`CLAUDE.md`](CLAUDE.md) for the operating contract and [`docs/evidence.md`](docs/evidence.md) for the research provenance mapping every non-trivial design choice to its academic or production citation. The highlights:
+See [`AGENTS.md`](AGENTS.md) for the Codex operating contract, [`CLAUDE.md`](CLAUDE.md) for the Claude-side twin, and [`docs/evidence.md`](docs/evidence.md) for the research provenance mapping every non-trivial design choice to its academic or production citation. The highlights:
 
 - **Test-first execution.** Failing tests before implementation (Anthropic SWE-bench scaffold, CodePRM ACL 2025).
 - **Single-threaded by default.** Fan-out in `lhc-team` requires a written independence proof (Cognition "Don't Build Multi-Agents", SWE-bench Verified G6 > G7).
@@ -291,7 +296,7 @@ See [`CLAUDE.md`](CLAUDE.md) for the operating contract and [`docs/evidence.md`]
 
 **Peer review verdict is `degraded`.** The counterpart CLI is missing. Install both `claude` and `codex` on your `PATH`, or accept degraded mode per session.
 
-**Hooks don't fire.** Confirm the plugin is active (`/plugin list`). Check for `DISABLE_LHC=1` or `LHC_SKIP_HOOKS` in your shell env.
+**Hooks don't fire.** In Claude Code, confirm `/plugin list` shows `let-him-cook`. In Codex, confirm `~/.agents/plugins/marketplace.json` contains `let-him-cook` and `~/.codex/config.toml` contains `[plugins."let-him-cook@ronensi-local"] enabled = true`. Then check for `DISABLE_LHC=1` or `LHC_SKIP_HOOKS` in your shell env.
 
 **Skill says "no plan found" when invoking `lhc-ralph`.** Run `lhc-ralplan` first. LHC refuses to invent plans inline.
 
@@ -310,8 +315,10 @@ LHC is personal-local by default. To pull new changes:
 ```bash
 cd ~/plugins/let-him-cook
 git pull
-# Claude Code re-reads plugin contents on next session start
+# Claude Code and Codex will pick up the new plugin contents on the next session restart
 ```
+
+If you installed LHC into Codex via the symlink installer, `git pull` updates the live plugin immediately. Re-run `node scripts/install-codex-plugin.js --dry-run` if you want to confirm the registry files still match the expected local-install shape.
 
 When the plugin itself is updated, re-run `/lhc-status` to confirm your runtime still matches the schema (old `~/.lhc/state/` is forward-compatible).
 

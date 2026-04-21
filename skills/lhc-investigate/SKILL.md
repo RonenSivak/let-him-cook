@@ -52,12 +52,12 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 1. **Initialize workflow state**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow investigate --source workflow --cwd "$PWD" --task "<user request>" --peer-review-required
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/runtime-touch.js --workflow investigate --source workflow --cwd "$PWD" --task "<user request>" --peer-review-required
    ```
 
 2. **Run readiness**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js investigate --json
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/check-readiness.js investigate --json
    ```
 
 3. **Use primary surfaces** — pull in parallel when lanes are independent:
@@ -74,7 +74,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 4. **Ensure runtime exists**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/ensure-runtime.js >/dev/null
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/ensure-runtime.js >/dev/null
    ```
 
 5. **Dispatch specialists** for bounded lanes:
@@ -84,7 +84,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 6. **Peer review the conclusion** — use the background-bash pattern (see `../shared/peer-review-governance.md`); investigation reviews typically take 60-180s:
    ```
    Bash(
-     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode investigation --cwd \"$PWD\" --prompt-file <investigation-summary-path>",
+     command: "sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode investigation --cwd \"$PWD\" --prompt-file <investigation-summary-path>",
      run_in_background: true,
      timeout: 600000
    )
@@ -95,7 +95,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 8. **Append to notepad** (use the helper — never hand-format)
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow investigate --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>" --kv conf="<low|medium|high>"
    ```

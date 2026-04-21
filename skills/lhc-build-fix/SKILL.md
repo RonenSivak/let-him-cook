@@ -52,12 +52,12 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 1. **Initialize workflow state**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow build-fix --source workflow --cwd "$PWD" --task "<failure>" --peer-review-required
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/runtime-touch.js --workflow build-fix --source workflow --cwd "$PWD" --task "<failure>" --peer-review-required
    ```
 
 2. **Run readiness**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js build-fix --json
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/check-readiness.js build-fix --json
    ```
 
 3. **Gather evidence in parallel** when independent:
@@ -80,7 +80,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 7. **Peer review** the triage conclusion — use the background-bash pattern (see `../shared/peer-review-governance.md`):
    ```
    Bash(
-     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode analysis --cwd \"$PWD\" --prompt-file <triage-artifact-path>",
+     command: "sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode analysis --cwd \"$PWD\" --prompt-file <triage-artifact-path>",
      run_in_background: true,
      timeout: 600000
    )
@@ -89,7 +89,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 8. **Append to notepad** (use the helper — never hand-format)
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow build-fix --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<artifact-path>" --kv classification="<code|flaky-test|release|ownership|infra>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```

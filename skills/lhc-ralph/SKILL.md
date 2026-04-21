@@ -59,7 +59,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 1. **Initialize workflow state**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow ralph --source workflow --cwd "$PWD" --task "<plan-path or user request>" --peer-review-required
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/runtime-touch.js --workflow ralph --source workflow --cwd "$PWD" --task "<plan-path or user request>" --peer-review-required
    ```
 
 2. **Resolve the plan file** in this order:
@@ -70,7 +70,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 3. **Ensure runtime**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/ensure-runtime.js >/dev/null
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/ensure-runtime.js >/dev/null
    ```
 
 4. **Execution loop** — for each step in the plan:
@@ -86,7 +86,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    ```
    git diff | head -400 > /tmp/lhc-ralph-diff.txt
    Bash(
-     command: "sh \"$CLAUDE_PLUGIN_ROOT\"/scripts/peer-review.sh --leader claude --mode code-review --cwd \"$PWD\" --prompt-file /tmp/lhc-ralph-diff.txt",
+     command: "sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode code-review --cwd \"$PWD\" --prompt-file /tmp/lhc-ralph-diff.txt",
      run_in_background: true,
      timeout: 600000
    )
@@ -102,7 +102,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 8. **Append to notepad** (use the helper — never hand-format)
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow ralph --slug "<slug>" --cwd "$PWD" \
      --kv plan="<plan-path>" --kv artifact="<artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```

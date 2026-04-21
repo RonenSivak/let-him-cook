@@ -10,7 +10,7 @@ export ENABLE_PROMPT_CACHING_1H
 
 show_help() {
   printf '%s\n' \
-    'Usage: sh peer-review.sh --leader <codex|claude> --mode <code-review|plan|investigation|conclusion|analysis> [--cwd <dir>] [--prompt-file <file>]' \
+    'Usage: sh peer-review.sh [--leader <codex|claude>] --mode <code-review|plan|investigation|conclusion|analysis> [--cwd <dir>] [--prompt-file <file>]' \
     '' \
     'Reads the review prompt from --prompt-file or stdin and routes the task to the counterpart model.' \
     'The counterpart is instructed and sandboxed to REVIEW only — no file edits, no commits, no implementation.' \
@@ -20,6 +20,7 @@ show_help() {
     'to a log file printed at startup so progress is recoverable even when the host tool buffers.' \
     '' \
     'Environment:' \
+    '  CODEX_PLUGIN_ROOT / CLAUDE_PLUGIN_ROOT auto-detect the current host when --leader is omitted' \
     '  ENABLE_PROMPT_CACHING_1H=0   disable 1-hour prompt cache (default 1)' \
     '  LHC_PEER_REVIEW_NO_LOG=1     disable the tee-to-log mirror (for pristine stdout)' \
     '  LHC_PEER_REVIEW_LOG_DIR      override log dir (default ~/.lhc/logs/peer-review)'
@@ -61,7 +62,15 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ -z "$LEADER" ]; then
-  echo "Missing --leader" >&2
+  if [ -n "${CODEX_PLUGIN_ROOT:-}" ]; then
+    LEADER="codex"
+  elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+    LEADER="claude"
+  fi
+fi
+
+if [ -z "$LEADER" ]; then
+  echo "Missing --leader (or CODEX_PLUGIN_ROOT / CLAUDE_PLUGIN_ROOT for auto-detect)" >&2
   exit 1
 fi
 

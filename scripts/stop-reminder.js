@@ -59,7 +59,8 @@ const message = [
   `[LHC reminder] Stopping with unfinished peer-review gates: ${workflows}.`,
   '',
   'Run:',
-  '  sh $CLAUDE_PLUGIN_ROOT/scripts/peer-review.sh --leader claude --mode <mode> --prompt-file <file>',
+  '  LHC_PLUGIN_ROOT="${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"',
+  '  sh "$LHC_PLUGIN_ROOT"/scripts/peer-review.sh --mode <mode> --prompt-file <file>',
   '',
   'Or mark the workflow as abandoned explicitly. Silent skipping leaves a',
   'stale peer_review_status=required on ~/.lhc/state/sessions/<sid>/.'

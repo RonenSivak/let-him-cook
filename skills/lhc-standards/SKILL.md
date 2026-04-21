@@ -59,12 +59,12 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 1. **Initialize workflow state**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/runtime-touch.js --workflow standards --source workflow --cwd "$PWD" --task "<files or feature area>"
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/runtime-touch.js --workflow standards --source workflow --cwd "$PWD" --task "<files or feature area>"
    ```
 
 2. **Run readiness**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/check-readiness.js standards --json
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/check-readiness.js standards --json
    ```
 
 3. **Classify the task** — determine primary language (TS/JS/Go/Python), framework (React/Node/Wix editor), and package(s) touched. Read:
@@ -144,7 +144,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 8. **Append to notepad**
    ```bash
-   node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+   node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow standards --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<brief-path>" --kv conf="<low|medium|high>"
    ```

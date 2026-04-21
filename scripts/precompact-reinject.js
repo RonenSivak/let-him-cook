@@ -25,7 +25,7 @@ const message = [
   '6. Three failed iterations of the same fix = stop and question the plan.',
   '   Do not attempt fix #4.',
   '',
-  'Full contract: CLAUDE.md at the plugin root. Invariants: skills/shared/iron-laws.md.'
+  'Full contract: AGENTS.md (Codex) / CLAUDE.md (Claude) at the plugin root. Invariants: skills/shared/iron-laws.md.'
 ].join('\n');
 
 const payload = {

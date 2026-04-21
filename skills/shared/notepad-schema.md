@@ -29,7 +29,7 @@ Example:
 Use the helper. Do not write notepad entries by hand — format drift across skills is the #1 cause of unreadable notepad history.
 
 ```bash
-node "$CLAUDE_PLUGIN_ROOT"/scripts/write-notepad.js \
+node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
   --workflow ralph \
   --slug auth-token-refresh \
   --cwd "$PWD" \
