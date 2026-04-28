@@ -18,6 +18,8 @@ LHC HANDOFF
 - Verdict: approved|approved-with-changes|rejected|degraded  # when peer-review ran
 - Confidence: high|medium|low          # when applicable (investigate, research, standards)
 - Classification: <workflow-or-bucket> # interview workflow or build-fix bucket
+- Intent label: <research intent>       # when research-intent classification ran
+- Answer format: <format>              # when research-intent classification ran
 - Feature labels: <labels>             # when feature-type classification ran
 - Audience: <audience values>          # when feature-type classification ran
 - Layers: <layer values>               # when feature-type classification ran
@@ -30,6 +32,8 @@ LHC HANDOFF
 - Pass to next skill:
     artifact=<path>
     plan=<path>                         # if applicable
+    intent-label=<research intent>       # if applicable
+    answer-format=<format>               # if applicable
     feature-labels=<labels>             # if applicable
     audience=<audience values>          # if applicable
     layers=<layer values>               # if applicable
@@ -48,6 +52,7 @@ Field rules:
 - Include `Verdict` when peer review ran in this skill.
 - Include `Confidence` when the skill emits a confidence rating (investigate, research, standards).
 - Include `Classification` for `lhc-interview` routing decisions and `lhc-build-fix` buckets.
+- Include `Intent label` and `Answer format` when `lhc-research` classified a research request.
 - Include `Feature labels`, `Audience`, and `Layers` when `lhc-interview` or `lhc-ralplan` classified a feature request.
 - Include `Bug labels`, `Severity`, `Origin`, `Defect surface`, and `Fix strategy` when `lhc-interview`, `lhc-ralplan`, `lhc-build-fix`, or `lhc-investigate` classified a bug-fix request or symptom.
 - Include `Next skill` + `Pass to next skill` only when there is a natural next step. For terminal skills (where "done" is the expected outcome), omit these two lines.
@@ -101,6 +106,8 @@ LHC HANDOFF
 - Slug: session-token-refresh-pattern
 - Cwd: /Users/ronen/src/identity-service
 - Artifact: ~/.lhc/artifacts/research-session-token-refresh-pattern-2026-04-20T12-00-00Z.md
+- Intent label: internal_best_practice
+- Answer format: recommendation
 - Confidence: high
 ```
 

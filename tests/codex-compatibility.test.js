@@ -94,6 +94,7 @@ test('research workflow classifies programmer research by intent and source need
   const researchSkill = read('skills/lhc-research/SKILL.md');
   const interviewSkill = read('skills/lhc-interview/SKILL.md');
   const routerManifest = read('skills/lhc-research/agents/openai.yaml');
+  const handoffProtocol = read('skills/shared/handoff-protocol.md');
 
   const expectedLabels = [
     'learn_concept',
@@ -133,6 +134,9 @@ test('research workflow classifies programmer research by intent and source need
   assert.match(researchSkill, /Intent label: <[^>]+>/);
   assert.match(researchSkill, /Source plan: <[^>]+>/);
   assert.match(researchSkill, /Answer format: <[^>]+>/);
+  assert.match(researchSkill, /Intent label and answer format included in the terminal handoff/);
+  assert.match(handoffProtocol, /Intent label: <research intent>/);
+  assert.match(handoffProtocol, /Answer format: <format>/);
   assert.match(interviewSkill, /programmer research/i);
   assert.match(interviewSkill, /design_decision/);
   assert.match(routerManifest, /intent label/i);

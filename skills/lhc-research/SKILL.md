@@ -136,6 +136,9 @@ Use the taxonomy's source table to pick the minimum proving sources:
    - Slug: <slug>
    - Cwd: <pwd>
    - Artifact: <artifact-path>
+   - Intent label: <one label from ../shared/research-intent-taxonomy.md>
+   - Answer format: <explanation|recipe|recommendation|tradeoff table|risk assessment|test plan|migration plan|doc draft|other>
+   - Bug labels: <primary label>[, <secondary label>...]   (if intent is debug_issue)
    - Confidence: <low|medium|high>
    ```
 
@@ -144,6 +147,7 @@ Use the taxonomy's source table to pick the minimum proving sources:
 <Final_Checklist>
 - [ ] Artifact saved under `~/.lhc/artifacts/`
 - [ ] Intent label, programmer action, source plan, and answer format recorded
+- [ ] Intent label and answer format included in the terminal handoff
 - [ ] At least one internal source cited (docs-schema or octocode) when the question is Wix-specific
 - [ ] Quoted passages per claim where available
 - [ ] Caveats and "not verified" items explicit
