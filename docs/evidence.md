@@ -161,6 +161,19 @@ Last reviewed: 2026-04-20.
 
 ---
 
+## 14. Specialist review for plugin and skill changes
+
+**Rule:** Diffs that modify plugin structure, role prompts, agents, hooks, scripts, catalogs, or skill workflows run local `plugin-structure-reviewer` and `skill-authoring-reviewer` passes before final counterpart review. The main agent fixes findings and reruns the same specialists until both approve.
+
+**Evidence:**
+- **Anthropic Agent Skills** ([anthropic.com](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)): skills work best as lean instruction folders with progressive disclosure, scripts for deterministic work, representative-task evaluation, and explicit security auditing.
+- **OpenAI Codex agent loop** ([openai.com](https://openai.com/index/unrolling-the-codex-agent-loop/)): software-agent quality depends on instruction layering, tools, observations, and context-window management. Plugin/skill changes modify those control surfaces and need a targeted review.
+- **CRITIC ICLR 2024** ([iclr.cc](https://proceedings.iclr.cc/paper_files/paper/2024/hash/fef126561bbf9d4467dbb8d27334b8fe-Abstract-Conference.html)): external feedback and tool-grounded critique improve outputs; self-approval is not enough.
+- **Reflexion NeurIPS 2023** ([neurips.cc](https://proceedings.neurips.cc/paper_files/paper/2023/hash/1b44b878bb782e6954cd888628510e90-Abstract-Conference.html)): iterative feedback can improve later attempts when the feedback is captured and reused.
+- **CodePRM ACL Findings 2025** ([aclanthology.org](https://aclanthology.org/2025.findings-acl.428/)): generate-verify-refine with execution feedback is a useful pattern for code-generation quality control.
+
+---
+
 ## Patterns explicitly NOT adopted
 
 These look useful but the research does not support them for a coding-agent plugin. Listed so future contributors don't re-propose them without fresh evidence:

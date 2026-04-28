@@ -28,6 +28,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/peer-review-governance.md`
 - `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
+- `../shared/subagent-catalog.md`
+- `../shared/plugin-skill-review-evidence.md`
 </Required_Reading>
 
 <Use_When>
@@ -57,7 +59,19 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/runtime-touch.js --workflow review --source workflow --cwd "$PWD" --task "<input-path>" --peer-review-required
    ```
 
-2. **Route by leader** — use the background-bash pattern (see `../shared/peer-review-governance.md`); reviews typically take 30-180s.
+2. **Plugin/skill specialist review loop** — when the reviewed diff or artifact changes plugin structure, run these local specialist reviewers before any counterpart `peer-review.sh` call starts. Plugin structure includes `AGENTS.md`, `CLAUDE.md`, `README.md`, `prompts/`, `agents/`, `hooks.json`, `hooks/`, scripts, `permissions.json`, `.codex-plugin/`, `.claude-plugin/`, `skills/**/SKILL.md`, shared skill control surfaces (`skills/shared/*taxonomy.md`, `skills/shared/*evidence.md`, `skills/shared/subagent-catalog.md`, `skills/shared/handoff-protocol.md`), and any plugin or marketplace manifest:
+   - `plugin-structure-reviewer` for plugin structure, host compatibility, catalogs, hooks, runtime safety, and role-file truthfulness.
+   - `skill-authoring-reviewer` for `SKILL.md` trigger quality, progressive disclosure, workflow clarity, evidence grounding, and evaluation coverage.
+
+   Both specialists use `../shared/plugin-skill-review-evidence.md` and MUST return:
+   ```
+   ## Verdict
+   approved | approved-with-changes | rejected
+   ```
+
+   Specialist review is a pre-flight gate before counterpart review, not a replacement for `peer-review.sh`. `lhc-review` does not edit the reviewed artifact or implement reviewer suggestions; it only records verdict evidence. If both specialist verdicts are `approved`, continue to the counterpart review stage. If a specialist returns `rejected`, or returns `approved-with-changes` that the user has not explicitly accepted, save a review artifact with the specialist verdicts and stop with an overall non-approved verdict. A producing workflow or coordinating main agent outside `lhc-review` may fix findings and rerun `lhc-review` until both specialist verdicts are approved, then counterpart review runs. If either specialist returns `rejected` three times on the same issue, stop and name the blocker.
+
+3. **Route by leader** — after specialist pre-flight has passed or is not applicable, use the background-bash pattern (see `../shared/peer-review-governance.md`); reviews typically take 30-180s.
 
    Inside Claude Code (default):
    ```
@@ -79,25 +93,25 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    ```
    Prefer this pattern for long reviews (>30s) or when the user has asked to see the reviewer's reasoning. For quick reviews, the default foreground call is fine and the log path is enough.
 
-3. **For `code-review` mode, run two stages** (one call each, scoped prompts):
+4. **For `code-review` mode, run two stages** (one call each, scoped prompts):
    - **Stage 1 — Spec compliance.** Prompt the counterpart with: the plan's acceptance criteria + the diff + a checklist asking "for each criterion N, does the diff satisfy it? Cite file:line evidence. If unmet, flag." Record verdict.
    - **Stage 2 — Code quality + standards compliance.** Prompt the counterpart with: the diff + the standards brief (`~/.lhc/artifacts/standards-<slug>-<UTC-ISO>.md`, if one exists) + a checklist asking "(a) correctness, minimality, test coverage against acceptance criteria; (b) adherence to the brief's Applied Rulings; (c) any violation of the brief's Non-negotiables (security, a11y, Wix SDK). Call out smells." Record verdict. If no standards brief exists and the change modifies source files, note this as a gap in the review artifact — it is a missed gate, not an automatic block.
    - The overall verdict is `approved` only if both stages are `approved` or `approved-with-changes`.
 
    For non-diff modes (`plan`, `investigation`, `conclusion`, `analysis`) a single pass is sufficient.
 
-4. **Capture and classify** the reviewer's output(s) into a verdict.
+5. **Capture and classify** the reviewer's output(s) into a verdict.
 
-5. **Save the review artifact** at `~/.lhc/artifacts/review-<slug>-<UTC-ISO>.md`. Include: input path, mode, leader, per-stage verdicts (if two-stage), overall verdict, key findings (verbatim from reviewer where possible), residual risks, explicit "missing coverage" line if degraded.
+6. **Save the review artifact** at `~/.lhc/artifacts/review-<slug>-<UTC-ISO>.md`. Include: input path, mode, leader, per-stage verdicts (if two-stage), specialist reviewer verdicts (when step 2 ran), overall verdict, key findings (verbatim from reviewer where possible), residual risks, explicit "missing coverage" line if degraded.
 
-6. **Append to notepad** (use the helper — never hand-format)
+7. **Append to notepad** (use the helper — never hand-format)
    ```bash
    node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow review --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<review-artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>"
    ```
 
-7. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+8. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
    ```
    LHC HANDOFF
    - Completed: review

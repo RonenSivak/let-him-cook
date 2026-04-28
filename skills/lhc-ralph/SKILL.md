@@ -29,6 +29,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/commit-trailers.md`
+- `../shared/bug-fix-taxonomy.md`
 - `../../docs/runtime-contract.md`
 </Required_Reading>
 
@@ -74,7 +75,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    ```
 
 4. **Execution loop** — for each step in the plan:
-   - **Write the failing test first.** Create or identify the test that encodes the acceptance criterion. Run it. Confirm it fails for the *right* reason (not a setup error). If the test passes before implementation, the test is wrong — rewrite it.
+   - If the plan has a **Bug Fix Classification**, keep the bug labels, severity, origin, defect surface, and fix strategy in the step prompt. The failing test must reproduce the reported wrong behavior, not merely cover the edited function.
+   - **Write the failing test first.** Create or identify the test that encodes the acceptance criterion. Run it. Confirm it fails for the *right* reason (not a setup error). If the test passes before implementation, the test is wrong — rewrite it. For bug fixes, record the expected vs actual behavior from the reproduction.
    - Dispatch `Task(subagent_type="let-him-cook:executor", prompt=<step + file anchors + failing-test output + acceptance bits>)` for bounded edits.
    - Run the verification command(s) from the plan. Read the full output.
    - If verification fails, dispatch `Task(subagent_type="let-him-cook:debugger", …)` for root cause, then fix via `executor`. **Hard cap: 3 retries per step.** After 3 failed retries, STOP the step and surface the failure — do not attempt fix #4.
@@ -95,7 +97,9 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 7. **Write the execution artifact** at `~/.lhc/artifacts/execute-<slug>-<UTC-ISO>.md`. Include:
    - link to the plan file
+   - bug labels, severity, origin, defect surface, and fix strategy when the plan contains a Bug Fix Classification
    - files touched (paths)
+   - failing-test / reproduction output observed before the fix for each bug-fix acceptance criterion
    - verification commands run + truncated output
    - peer-review verdict
    - residual gaps
@@ -123,6 +127,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 <Final_Checklist>
 - [ ] Plan file was read and used as the spec
 - [ ] Every acceptance criterion has a corresponding test that was observed failing BEFORE implementation
+- [ ] For bug fixes, the failing test or executable reproduction matched the reported wrong behavior before the fix
 - [ ] Every acceptance criterion has a passing verification command (fresh run, not remembered)
 - [ ] No step exceeded 3 retries
 - [ ] Peer-review verdict is `approved` or `approved-with-changes` after fixes

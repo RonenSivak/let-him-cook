@@ -25,6 +25,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
+- `../shared/bug-fix-taxonomy.md`
 </Required_Reading>
 
 <Use_When>
@@ -46,6 +47,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - MUST NOT implement code edits. If a fix is warranted, tell the user to invoke `lhc-ralplan` next.
 - State confidence explicitly (low/medium/high) and name the evidence that would change it.
 - Use at least two surfaces before concluding — a single-surface conclusion is weak.
+- MUST classify the symptom/root cause using `../shared/bug-fix-taxonomy.md`; labels before root-cause proof are hypotheses, not conclusions.
 </Execution_Policy>
 
 ## Workflow
@@ -81,7 +83,20 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - `Task(subagent_type="let-him-cook:incident-investigator", …)` for cross-surface correlation
    - `Task(subagent_type="let-him-cook:build-release-operator", …)` for release/rollout correlation
 
-6. **Peer review the conclusion** — use the background-bash pattern (see `../shared/peer-review-governance.md`); investigation reviews typically take 60-180s:
+6. **Bug Fix Classification** — classify the production symptom/root cause using `../shared/bug-fix-taxonomy.md`:
+   ```
+   Bug labels: <primary label>[, <secondary label>...] or hypothesis:<label>
+   Severity: <severity values>
+   Origin: <origin values or unknown>
+   Defect surface: <surface values>
+   Fix strategy: <strategy values>
+   Bug routing rationale: <why the next step is ralplan or terminal ops follow-up>
+   Bug verification implications: <regression, data repair, rollout, observability, and review consequences>
+   ```
+
+   Use `hypothesis:<label>` until two or more surfaces corroborate the defect shape. Escalate security-critical, data-loss, money-impacting, privacy, authorization, concurrency, distributed, migration, and data-integrity labels as high-risk plan inputs when a fix is warranted.
+
+7. **Peer review the conclusion** — use the background-bash pattern (see `../shared/peer-review-governance.md`); investigation reviews typically take 60-180s:
    ```
    Bash(
      command: "sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode investigation --cwd \"$PWD\" --prompt-file <investigation-summary-path>",
@@ -91,16 +106,16 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    → poll BashOutput until "## Verdict" appears.
    ```
 
-7. **Save the artifact** at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md`. Required sections: timeline (UTC), evidence per surface with links/request IDs, correlation across surfaces, root-cause hypothesis with confidence, owner, peer-review verdict, residual gaps.
+8. **Save the artifact** at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md`. Required sections: timeline (UTC), evidence per surface with links/request IDs, correlation across surfaces, root-cause hypothesis with confidence, bug classification, owner, peer-review verdict, residual gaps.
 
-8. **Append to notepad** (use the helper — never hand-format)
+9. **Append to notepad** (use the helper — never hand-format)
    ```bash
    node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow investigate --slug "<slug>" --cwd "$PWD" \
-     --kv artifact="<artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>" --kv conf="<low|medium|high>"
+     --kv artifact="<artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>" --kv conf="<low|medium|high>" --kv bug_labels="<labels|hypothesis:label>"
    ```
 
-9. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+10. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
    ```
    LHC HANDOFF
    - Completed: investigate
@@ -109,17 +124,28 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - Artifact: <artifact-path>
    - Verdict: <approved|approved-with-changes|rejected|degraded>
    - Confidence: <low|medium|high>
+   - Bug labels: <primary label>[, <secondary label>...] or hypothesis:<label>
+   - Severity: <severity values>
+   - Origin: <origin values or unknown>
+   - Defect surface: <surface values>
+   - Fix strategy: <strategy values>
    - Next skill: let-him-cook:lhc-ralplan    (only if a code fix is warranted)
    - Pass to next skill:
        investigation-artifact=<artifact-path>
+       bug-labels=<labels>
+       severity=<severity>
+       origin=<origin>
+       defect-surface=<surface>
+       fix-strategy=<strategy>
    ```
 
-   Omit the last two lines if no fix is warranted — an incident conclusion can be the terminal step.
+   Include the `Next skill` and full `Pass to next skill` block only when a code fix is warranted, and pass `investigation-artifact`, `bug-labels`, `severity`, `origin`, `defect-surface`, and `fix-strategy`. If no code fix is warranted, omit the entire `Next skill` and `Pass to next skill` block — an incident conclusion can be the terminal step.
 
 <Final_Checklist>
 - [ ] Evidence gathered from at least two of root-cause / grafana / grafana-datasource / devex
 - [ ] Artifact saved under `~/.lhc/artifacts/`
 - [ ] Confidence stated explicitly with the evidence that would change it
+- [ ] Bug labels, severity, origin, defect surface, fix strategy, and verification implications recorded as evidence-backed conclusion or hypothesis
 - [ ] Peer-review verdict recorded
 - [ ] No external system was written to
 - [ ] No source file was modified

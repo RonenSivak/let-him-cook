@@ -31,6 +31,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/subagent-catalog.md`
 - `../shared/notepad-schema.md`
 - `../shared/commit-trailers.md`
+- `../shared/bug-fix-taxonomy.md`
 </Required_Reading>
 
 <Use_When>
@@ -75,6 +76,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - docs / repo research lane → `let-him-cook:repo-cartographer`, `let-him-cook:internal-docs-researcher`
    - review lane → `let-him-cook:code-reviewer` + `peer-review.sh`
 
+   If the plan contains a Bug Fix Classification, include bug labels, severity, origin, defect surface, fix strategy, and the pre-fix reproduction/regression expectation in every implementation and verification lane that touches the fix.
+
 4. **Dispatch lanes in parallel** via `Task(...)`. Keep with the coordinating agent: lane selection, conflict resolution across lane outputs, final synthesis. Cap at 4 parallel lanes — beyond that, serialize.
 
 5. **Synthesize** per-lane outputs into the final diff + evidence package.
@@ -91,6 +94,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    ```
 
 7. **Save artifact** at `~/.lhc/artifacts/team-<slug>-<UTC-ISO>.md` — lane map, independence proof, per-lane summary, aggregated files touched, verification evidence, peer-review verdict.
+
+   For bug-fix plans, also include the bug classification and the failing reproduction/regression evidence each lane used.
 
 8. **Append to notepad** (use the helper — never hand-format)
    ```bash
@@ -117,6 +122,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - [ ] Independence proof written (files, shared state, merge conflicts, blocking relationships)
 - [ ] Fan-out did not exceed 4 parallel lanes
 - [ ] Each lane produced an explicit output
+- [ ] For bug-fix plans, every affected implementation/verification lane received bug labels, severity, origin, defect surface, fix strategy, and pre-fix reproduction/regression expectations
+- [ ] For bug-fix plans, the team artifact records the bug classification and the failing reproduction/regression evidence each lane used
 - [ ] Coordinating agent did not implement directly
 - [ ] Verification evidence gathered
 - [ ] Peer review recorded

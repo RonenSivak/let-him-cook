@@ -14,14 +14,14 @@ Every entry is a single line with tab-separated fields, prefixed by a dash:
 - `workflow` — one of `interview`, `ralplan`, `ralph`, `team`, `investigate`, `build-fix`, `research`, `review`
 - `slug` — short kebab-case identifier for the task (`auth-token-refresh`, `rollout-42`)
 - `cwd` — current working directory at invocation
-- `key=value` pairs — any of: `plan=<path>`, `artifact=<path>`, `verdict=<approved|approved-with-changes|rejected|degraded>`, `classification=<code|flaky-test|release|ownership|infra>`, `conf=<low|medium|high>`
+- `key=value` pairs — any of: `plan=<path>`, `artifact=<path>`, `verdict=<approved|approved-with-changes|rejected|degraded>`, `classification=<code|flaky-test|release|ownership|infra>`, `conf=<low|medium|high>`, `bug_labels=<comma-separated-labels|unknown|hypothesis:label>`
 
 Example:
 
 ```
 - 2026-04-20T14:23:05Z	ralplan	auth-token-refresh	/Users/ronen/src/mcp-servers	plan=/Users/ronen/.lhc/plans/ralplan-auth-token-refresh-2026-04-20T14-23-05Z.md	verdict=approved
 - 2026-04-20T14:40:12Z	ralph	auth-token-refresh	/Users/ronen/src/mcp-servers	plan=/Users/ronen/.lhc/plans/ralplan-auth-token-refresh-2026-04-20T14-23-05Z.md	artifact=/Users/ronen/.lhc/artifacts/execute-auth-token-refresh-2026-04-20T14-40-12Z.md	verdict=approved
-- 2026-04-20T15:02:44Z	investigate	payments-5xx-spike	/Users/ronen/src/payments	artifact=/Users/ronen/.lhc/artifacts/investigate-payments-5xx-spike-2026-04-20T15-02-44Z.md	verdict=approved	conf=high
+- 2026-04-20T15:02:44Z	investigate	payments-5xx-spike	/Users/ronen/src/payments	artifact=/Users/ronen/.lhc/artifacts/investigate-payments-5xx-spike-2026-04-20T15-02-44Z.md	verdict=approved	conf=high	bug_labels=hypothesis:distributed_system_bug
 ```
 
 ## The only correct way to append

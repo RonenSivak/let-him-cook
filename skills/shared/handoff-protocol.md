@@ -17,11 +17,27 @@ LHC HANDOFF
 - Plan: <absolute-path>                # when applicable (ralph, team, review-of-plan)
 - Verdict: approved|approved-with-changes|rejected|degraded  # when peer-review ran
 - Confidence: high|medium|low          # when applicable (investigate, research, standards)
-- Classification: <bucket>             # build-fix only: code|flaky-test|release|ownership|infra
+- Classification: <workflow-or-bucket> # interview workflow or build-fix bucket
+- Feature labels: <labels>             # when feature-type classification ran
+- Audience: <audience values>          # when feature-type classification ran
+- Layers: <layer values>               # when feature-type classification ran
+- Bug labels: <labels>                 # when bug-fix classification ran
+- Severity: <severity values>          # when bug-fix classification ran
+- Origin: <origin values or unknown>   # when bug-fix classification ran
+- Defect surface: <surface values>     # when bug-fix classification ran
+- Fix strategy: <strategy values>      # when bug-fix classification ran
 - Next skill: let-him-cook:<name>      # when there is a natural next step
 - Pass to next skill:
     artifact=<path>
     plan=<path>                         # if applicable
+    feature-labels=<labels>             # if applicable
+    audience=<audience values>          # if applicable
+    layers=<layer values>               # if applicable
+    bug-labels=<labels>                 # if applicable
+    severity=<severity values>          # if applicable
+    origin=<origin values or unknown>   # if applicable
+    defect-surface=<surface values>     # if applicable
+    fix-strategy=<strategy values>      # if applicable
     verdict=<verdict>                   # if applicable
 ```
 
@@ -31,7 +47,9 @@ Field rules:
 - Include `Plan` when the skill was triggered by or produced a plan file.
 - Include `Verdict` when peer review ran in this skill.
 - Include `Confidence` when the skill emits a confidence rating (investigate, research, standards).
-- Include `Classification` only for `lhc-build-fix`.
+- Include `Classification` for `lhc-interview` routing decisions and `lhc-build-fix` buckets.
+- Include `Feature labels`, `Audience`, and `Layers` when `lhc-interview` or `lhc-ralplan` classified a feature request.
+- Include `Bug labels`, `Severity`, `Origin`, `Defect surface`, and `Fix strategy` when `lhc-interview`, `lhc-ralplan`, `lhc-build-fix`, or `lhc-investigate` classified a bug-fix request or symptom.
 - Include `Next skill` + `Pass to next skill` only when there is a natural next step. For terminal skills (where "done" is the expected outcome), omit these two lines.
 
 ## Example (lhc-ralplan → lhc-ralph)
@@ -59,10 +77,20 @@ LHC HANDOFF
 - Cwd: /Users/ronen/src/payments
 - Artifact: ~/.lhc/artifacts/build-fix-payments-rollout-503-2026-04-20T15-02-44Z.md
 - Classification: code
+- Bug labels: deployment_release_bug, api_contract_bug
+- Severity: blocking
+- Origin: regression
+- Defect surface: backend/domain, deployment
+- Fix strategy: rollout/rollback, logic change
 - Verdict: approved
 - Next skill: let-him-cook:lhc-ralplan
 - Pass to next skill:
     triage-artifact=~/.lhc/artifacts/build-fix-payments-rollout-503-2026-04-20T15-02-44Z.md
+    bug-labels=deployment_release_bug,api_contract_bug
+    severity=blocking
+    origin=regression
+    defect-surface=backend/domain,deployment
+    fix-strategy=rollout/rollback,logic change
 ```
 
 ## Example (terminal — lhc-research)

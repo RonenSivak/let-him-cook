@@ -61,6 +61,8 @@ Generic roles:
 - `debugger` (sonnet)
 - `executor` (sonnet)
 - `verifier` (sonnet)
+- `plugin-structure-reviewer` (opus) — plugin manifests, catalogs, hooks, host compatibility, and runtime safety
+- `skill-authoring-reviewer` (opus) — skill triggers, workflows, progressive disclosure, and evaluation coverage
 
 Wix-native specialists:
 - `incident-investigator` (opus) — root-cause, grafana, devex
@@ -78,12 +80,12 @@ Preferred LHC surfaces (invoke via the `Skill` tool):
 - `lhc-interview` — classifies ambiguous requests and routes to the right skill.
 - `lhc-status` — read-only snapshot of `~/.lhc/`.
 - `lhc-standards` — produces a coding-standards brief balancing current-repo patterns with Wix ecosystem standards. Auto-called by `lhc-ralplan` for code-modifying plans.
-- `lhc-ralplan` — produces a peer-reviewed plan artifact.
-- `lhc-ralph` — executes an existing plan with verify/fix loop.
+- `lhc-ralplan` — produces a peer-reviewed plan artifact; classifies feature type before feature plans and bug type before bug-fix plans.
+- `lhc-ralph` — executes an existing plan with verify/fix loop, preserving bug classification for regression-first fixes.
 - `lhc-team` — parallel lanes on top of a reviewed plan.
-- `lhc-investigate` — production RCA with multi-surface correlation.
-- `lhc-build-fix` — classifies failing builds, CI, releases, rollouts.
-- `lhc-research` — "how does X work at Wix" with cited sources.
+- `lhc-investigate` — production RCA with multi-surface correlation and bug-symptom classification.
+- `lhc-build-fix` — classifies failing builds, CI, releases, rollouts, and related bug shape.
+- `lhc-research` — source-backed programmer research by intent: internal patterns, prior art, codebase understanding, tradeoffs, and recommendations.
 - `lhc-review` — counterpart peer-review gate; saves verdict.
 </skill_catalog>
 

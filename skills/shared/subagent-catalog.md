@@ -14,6 +14,8 @@ Model pinning is enforced by each agent's frontmatter. Do not override the tier 
 | `debugger` | sonnet | `agents/debugger.md` | Root-cause isolation before any fix is proposed. |
 | `executor` | sonnet | `agents/executor.md` | Bounded implementation with smallest diff that matches the plan. |
 | `verifier` | sonnet | `agents/verifier.md` | Fresh-evidence verification of a completion claim. |
+| `plugin-structure-reviewer` | opus | `agents/plugin-structure-reviewer.md` | Plugin manifests, catalogs, hooks, role files, host compatibility, and runtime safety. |
+| `skill-authoring-reviewer` | opus | `agents/skill-authoring-reviewer.md` | Skill triggers, workflows, progressive disclosure, evidence grounding, and evaluation coverage. |
 
 ## Wix-Native Specialist Roles
 

@@ -29,6 +29,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
+- `../shared/feature-type-taxonomy.md`
+- `../shared/bug-fix-taxonomy.md`
 </Required_Reading>
 
 <Use_When>
@@ -67,7 +69,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/check-readiness.js standards --json
    ```
 
-3. **Classify the task** — determine primary language (TS/JS/Go/Python), framework (React/Node/Wix editor), and package(s) touched. Read:
+3. **Classify the task** — determine primary language (TS/JS/Go/Python), framework (React/Node/Wix editor), package(s) touched, feature labels from `../shared/feature-type-taxonomy.md` when provided by `lhc-ralplan`, and bug labels from `../shared/bug-fix-taxonomy.md` when the plan is a bug fix. Read:
    - `package.json` (name, dependencies, scripts, workspaces)
    - `tsconfig.json` (strictness, paths, moduleResolution)
    - `.oxlintrc.json` / `.eslintrc.*` / `oxlint.json`
@@ -101,6 +103,9 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    ## Detected Context
    - Language/framework: ...
    - Package(s): ...
+   - Feature labels: ...
+   - Bug labels / severity / defect surface: ...
+   - Audience/layers: ...
    - Config signals: tsconfig.json (...), .oxlintrc.json (...), fedops.json (...)
    - Primary file-type: ...
 
@@ -164,6 +169,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 <Final_Checklist>
 - [ ] Standards brief saved under `~/.lhc/artifacts/`
+- [ ] Feature labels from `feature-type-taxonomy.md` were considered when supplied by `lhc-ralplan`
+- [ ] Bug labels from `bug-fix-taxonomy.md` were considered when supplied by `lhc-ralplan`
 - [ ] Every repo claim has a file:line citation
 - [ ] Every ecosystem claim has a source URL or docs-schema reference
 - [ ] Weights applied match the policy exactly (no ad-hoc weights invented)

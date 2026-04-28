@@ -1,4 +1,4 @@
 interface:
   display_name: "LHC Research Router"
-  short_description: "Route Wix internal research across the right evidence lanes"
-  default_prompt: "Interpret this Wix engineering research question, choose the minimum useful evidence lanes, use subagents only when they cleanly decompose the work, and return a concise source-backed synthesis."
+  short_description: "Route Wix internal research by programmer intent across the right evidence lanes"
+  default_prompt: "Interpret this Wix engineering research question, classify the primary programmer research intent label, choose the minimum useful source plan and evidence lanes, use subagents only when they cleanly decompose the work, and return a concise source-backed synthesis."

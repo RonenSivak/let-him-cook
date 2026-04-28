@@ -55,12 +55,14 @@ Match the user's request to the skill before doing anything else:
 
 | User says… | Skill to invoke |
 |-----------|-----------------|
-| "plan this", "design this", "before we code" | `lhc-ralplan` |
+| "plan this", "design this", "before we code", "build/add/implement this feature" | `lhc-ralplan` |
+| "fix/debug broken behavior" and the route is not clearly prod, build, research, or a code change | `lhc-interview` |
+| "plan this bug fix", "fix this non-live code bug" as a code change | `lhc-ralplan` |
 | "implement this", "run the plan", "ralph", "execute" | `lhc-ralph` |
 | "split this up", "parallelize", "team" | `lhc-team` |
 | "why is my build red", "CI is failing", "rollout broke" | `lhc-build-fix` |
 | "what's going on in prod", "why is this failing", "RCA" | `lhc-investigate` |
-| "how does X work at Wix", "which service owns Y" | `lhc-research` |
+| "how does X work at Wix", "which service owns Y", "what prior art or source-backed recommendation should guide this" | `lhc-research` |
 | "review this", "second opinion", "peer review" | `lhc-review` |
 | "what's in ~/.lhc", "lhc status" | `lhc-status` |
 | Anything ambiguous | `lhc-interview` (classifies and routes) |
@@ -87,6 +89,9 @@ Surface the kill switches if the user says "turn off LHC", "disable the plugin",
 - Full working contract: `AGENTS.md` (Codex) / `CLAUDE.md` (Claude) at the plugin root.
 - **Research provenance** (why LHC is shaped this way): `docs/evidence.md`.
 - Invariants per skill: `skills/shared/iron-laws.md`.
+- Programmer research taxonomy: `skills/shared/research-intent-taxonomy.md`.
+- Feature type taxonomy: `skills/shared/feature-type-taxonomy.md`.
+- Bug fix taxonomy: `skills/shared/bug-fix-taxonomy.md`.
 - How to resist rationalizing around a rule: `skills/shared/rationalization-guard.md`.
 - Permission rules as data: `permissions.json`.
 - Runtime layout: `docs/runtime-contract.md`.

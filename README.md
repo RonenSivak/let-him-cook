@@ -14,12 +14,12 @@ It is **not** a replacement for Wix MCP servers and **not** a write-enabled auto
 | Classify ambiguous request | `lhc-interview` | Routing decision |
 | Snapshot current state | `lhc-status` | Read-only report |
 | Coding-standards brief | `lhc-standards` | `~/.lhc/artifacts/standards-*.md` |
-| Plan substantial change | `lhc-ralplan` | `~/.lhc/plans/ralplan-*.md` (peer-reviewed) |
-| Execute a plan | `lhc-ralph` | `~/.lhc/artifacts/execute-*.md` (peer-reviewed) |
+| Plan substantial change | `lhc-ralplan` | `~/.lhc/plans/ralplan-*.md` (peer-reviewed, feature/bug-classified) |
+| Execute a plan | `lhc-ralph` | `~/.lhc/artifacts/execute-*.md` (peer-reviewed, regression-first for bug fixes) |
 | Parallel-lane execution | `lhc-team` | `~/.lhc/artifacts/team-*.md` |
-| Production RCA | `lhc-investigate` | `~/.lhc/artifacts/investigate-*.md` |
-| Red build classification | `lhc-build-fix` | `~/.lhc/artifacts/build-fix-*.md` |
-| "How does X work at Wix" | `lhc-research` | `~/.lhc/artifacts/research-*.md` |
+| Production RCA | `lhc-investigate` | `~/.lhc/artifacts/investigate-*.md` (bug-symptom classified) |
+| Red build classification | `lhc-build-fix` | `~/.lhc/artifacts/build-fix-*.md` (build bucket + bug shape) |
+| Source-backed programmer research | `lhc-research` | `~/.lhc/artifacts/research-*.md` |
 | Peer-review gate | `lhc-review` | `~/.lhc/artifacts/review-*.md` |
 
 ---
@@ -154,7 +154,14 @@ For a production issue:
 For a red build:
 
 ```
-/lhc-build-fix → devex + octocode → classifies as code/flaky/release/ownership/infra → hands off to lhc-ralplan if a code fix is warranted.
+/lhc-build-fix → devex + octocode → classifies as code/flaky/release/ownership/infra plus bug labels → hands off to lhc-ralplan if a code fix is warranted.
+```
+
+For a bug fix:
+
+```
+/lhc-ralplan → classifies bug labels, severity, origin, defect surface, and fix strategy → writes reproduction/regression-first acceptance criteria → peer-reviewed plan.
+/lhc-ralph → watches the regression fail for the reported behavior → implements → verifies → peer-reviewed diff.
 ```
 
 ---
@@ -244,6 +251,13 @@ sh "$LHC_PLUGIN_ROOT"/scripts/peer-review.sh --mode <mode> --prompt-file <file>
 ```
 
 Modes: `code-review`, `plan`, `investigation`, `conclusion`, `analysis`. `peer-review.sh` auto-detects whether it was invoked from Codex or Claude via the plugin-root environment variables. If the counterpart CLI is absent, the script exits non-zero and the calling skill records the verdict as `degraded`.
+
+Plugin and skill diffs get an extra local specialist loop before final counterpart sign-off:
+
+- `plugin-structure-reviewer` checks manifests, catalogs, hooks, prompts/agents, host compatibility, and runtime safety.
+- `skill-authoring-reviewer` checks skill triggers, workflow clarity, progressive disclosure, evidence grounding, and evaluation coverage.
+
+Both reviewers use `skills/shared/plugin-skill-review-evidence.md` and return `approved`, `approved-with-changes`, or `rejected`. If both approve, `lhc-review` continues to counterpart review. If either rejects, or returns unaccepted `approved-with-changes`, `lhc-review` records the specialist verdicts and stops with a non-approved verdict; the producing/main workflow fixes findings outside the review skill and reruns the reviewers.
 
 ---
 
