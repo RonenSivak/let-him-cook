@@ -6,7 +6,7 @@ when_to_use: The user has a saved plan and wants it implemented end-to-end with 
 
 # LHC Ralph
 
-Executes a plan that already exists in `~/.lhc/plans/`. Iterates implement → verify → fix until acceptance criteria pass, then gates on counterpart peer review.
+Executes a plan that already exists in `~/.lhc/plans/`. Iterates implement → verify → fix until acceptance criteria pass, then gates on peer review. Counterpart review is preferred; strict local fallback is allowed only when the counterpart cannot run.
 
 <Iron_Law>
 NO EXECUTION WITHOUT A PLAN FILE. Inventing the plan inline is forbidden. If no plan exists under `~/.lhc/plans/`, stop and tell the user to run `lhc-ralplan` first.
@@ -51,7 +51,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - MUST persist per-session state under `~/.lhc/state/sessions/<session-id>/ralph.json`.
 - MUST iterate implement → verify → fix until acceptance criteria pass or the loop hits a bound.
 - MUST produce an execution artifact at `~/.lhc/artifacts/execute-<slug>-<UTC-ISO>.md` before declaring success.
-- MUST require peer review before presenting the implementation as complete.
+- MUST require peer review before presenting the implementation as complete. If counterpart review cannot complete, MUST use the strict local fallback from `../shared/peer-review-governance.md` before returning degraded.
 - External systems stay read-only unless the plan explicitly authorizes a write.
 - MUST NOT silently extend the plan. If the plan is missing a step needed to succeed, stop and surface the gap.
 </Execution_Policy>
@@ -94,6 +94,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    )
    → poll BashOutput until "## Verdict" appears.
    ```
+   If counterpart review fails because the CLI is missing, out of tokens, rate-limited, timed out, crashed before a verdict, or returned an unparseable verdict, run the strict local fallback from `../shared/peer-review-governance.md`. For `code-review`, pass the plan acceptance criteria plus diff to fallback stage 1 and the diff plus standards brief to fallback stage 2. Record `Review route: strict-local-fallback`, `Counterpart coverage: degraded`, and `Counterpart failure: <missing cli|token limit|rate limit|timeout|crash|unparseable verdict>`.
+   If strict local fallback also cannot run, record `Verdict: degraded`, `Review route: degraded-none`, `Counterpart coverage: degraded`, and the exact `Counterpart failure`.
 
 7. **Write the execution artifact** at `~/.lhc/artifacts/execute-<slug>-<UTC-ISO>.md`. Include:
    - link to the plan file
@@ -101,7 +103,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - files touched (paths)
    - failing-test / reproduction output observed before the fix for each bug-fix acceptance criterion
    - verification commands run + truncated output
-   - peer-review verdict
+   - peer-review verdict, Review route, Counterpart coverage, and Counterpart failure when applicable
    - residual gaps
 
 8. **Append to notepad** (use the helper — never hand-format)
@@ -130,7 +132,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - [ ] For bug fixes, the failing test or executable reproduction matched the reported wrong behavior before the fix
 - [ ] Every acceptance criterion has a passing verification command (fresh run, not remembered)
 - [ ] No step exceeded 3 retries
-- [ ] Peer-review verdict is `approved` or `approved-with-changes` after fixes
+- [ ] Peer-review verdict is `approved` or `approved-with-changes` after fixes, with Review route, Counterpart coverage, and Counterpart failure recorded when applicable
 - [ ] Execution artifact saved under `~/.lhc/artifacts/`
 - [ ] Notepad entry appended
 - [ ] State file under `~/.lhc/state/sessions/<session-id>/ralph.json` marks completion

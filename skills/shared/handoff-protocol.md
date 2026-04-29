@@ -51,6 +51,7 @@ Field rules:
 - Include `Plan` when the skill was triggered by or produced a plan file.
 - Include `Verdict` when peer review ran in this skill.
 - Include `Confidence` when the skill emits a confidence rating (investigate, research, standards).
+- When `Confidence` is `medium` or `low`, the saved artifact must include the Evidence Coverage, Exhaustion Ledger, Confidence Blockers, and Next Evidence fields from `confidence-escalation-policy.md`. The compact handoff does not need to repeat the full ledger.
 - Include `Classification` for `lhc-interview` routing decisions and `lhc-build-fix` buckets.
 - Include `Intent label` and `Answer format` when `lhc-research` classified a research request.
 - Include `Feature labels`, `Audience`, and `Layers` when `lhc-interview` or `lhc-ralplan` classified a feature request.

@@ -381,3 +381,175 @@ test('plugin and skill specialist reviewers are wired into the review loop', () 
   assert.match(catalog, /plugin-structure-reviewer/);
   assert.match(catalog, /skill-authoring-reviewer/);
 });
+
+test('confidence-emitting workflows require exhaustion before lower confidence', () => {
+  const policy = read('skills/shared/confidence-escalation-policy.md');
+  const researchSkill = read('skills/lhc-research/SKILL.md');
+  const investigateSkill = read('skills/lhc-investigate/SKILL.md');
+  const standardsSkill = read('skills/lhc-standards/SKILL.md');
+  const handoffProtocol = read('skills/shared/handoff-protocol.md');
+  const ironLaws = read('skills/shared/iron-laws.md');
+  const usingLhc = read('skills/using-lhc/SKILL.md');
+
+  assert.match(policy, /Do not return `medium` or `low`/);
+  assert.match(policy, /Exhaustion Ledger/);
+  assert.match(policy, /Confidence Blockers/);
+  assert.match(policy, /Next Evidence That Would Raise Confidence/);
+  assert.match(policy, /Do not ask the user to resolve an evidence gap until local read-only options/);
+
+  for (const skill of [researchSkill, investigateSkill, standardsSkill]) {
+    assert.match(skill, /confidence-escalation-policy\.md/);
+    assert.match(skill, /Confidence gate/);
+    assert.match(skill, /Exhaustion Ledger/);
+    assert.match(skill, /Next Evidence That Would Raise Confidence/);
+    assert.match(skill, /medium` or `low`/);
+  }
+
+  assert.match(handoffProtocol, /confidence-escalation-policy\.md/);
+  assert.match(ironLaws, /No premature low confidence/);
+  assert.match(usingLhc, /Confidence after exhaustion/);
+});
+
+test('strict local peer-review fallback is wired for counterpart failures', () => {
+  const prompt = read('prompts/strict-peer-reviewer.md');
+  const agent = read('agents/strict-peer-reviewer.md');
+  const governance = read('skills/shared/peer-review-governance.md');
+  const reviewSkill = read('skills/lhc-review/SKILL.md');
+  const catalog = read('skills/shared/subagent-catalog.md');
+  const readme = read('README.md');
+  const agentsMd = read('AGENTS.md');
+  const claudeMd = read('CLAUDE.md');
+  const evidence = read('docs/evidence.md');
+  const precompact = read('scripts/precompact-reinject.js');
+  const usingLhc = read('skills/using-lhc/SKILL.md');
+  const ironLaws = read('skills/shared/iron-laws.md');
+  const confidencePolicy = read('skills/shared/confidence-escalation-policy.md');
+
+  for (const content of [prompt, agent]) {
+    assert.match(content, /Strict Peer Reviewer/);
+    assert.match(content, /review-only fallback/i);
+    assert.match(content, /approved \| approved-with-changes \| rejected/);
+    assert.doesNotMatch(content, /approved \| approved-with-changes \| rejected \| degraded/);
+    assert.match(content, /strict-local-fallback/);
+    assert.match(content, /Spec Compliance/);
+    assert.match(content, /MODE=code-review/);
+    assert.match(content, /Do not edit files/);
+  }
+
+  assert.match(agent, /tools: Read, Grep, Glob/);
+  assert.doesNotMatch(agent, /tools: .*Bash/);
+
+  const strictFallbackSummaries = [
+    ['prompts/strict-peer-reviewer.md', prompt],
+    ['agents/strict-peer-reviewer.md', agent],
+    ['skills/shared/peer-review-governance.md', governance],
+    ['skills/shared/confidence-escalation-policy.md', confidencePolicy],
+    ['skills/lhc-review/SKILL.md', reviewSkill],
+  ];
+
+  for (const [file, content] of strictFallbackSummaries) {
+    assert.match(content, /missing/, `${file} must mention missing CLI fallback`);
+    assert.match(content, /token\/quota|token.*quota|quota.*token/, `${file} must mention token/quota fallback`);
+    assert.match(content, /rate-limited/, `${file} must mention rate-limit fallback`);
+    assert.match(content, /timed out|times out/, `${file} must mention timeout fallback`);
+    assert.match(content, /crashed|crash/, `${file} must mention crash fallback`);
+    assert.match(content, /unparseable verdict/, `${file} must mention unparseable verdict fallback`);
+  }
+
+  assert.match(governance, /Strict Local Fallback/);
+  assert.match(governance, /token\/quota|token.*quota|quota.*token/);
+  assert.match(governance, /strict-peer-reviewer/);
+  assert.match(governance, /counterpart_coverage=degraded/);
+  assert.match(governance, /return only `approved`, `approved-with-changes`, or `rejected`/);
+  assert.match(governance, /Spec Compliance/);
+  assert.match(governance, /criterion-by-criterion/);
+  assert.match(governance, /two distinct\s+fallback passes/);
+  assert.match(governance, /plan acceptance criteria plus diff/);
+  assert.match(governance, /diff plus standards brief/);
+  assert.match(governance, /all stages `approved` -> overall `approved`/);
+  assert.match(governance, /any stage `approved-with-changes`/);
+  assert.match(governance, /any stage `rejected` -> overall `rejected`/);
+  assert.match(governance, /All counterpart reviews go through/);
+  assert.match(governance, /Codex: native `code-reviewer` subagent seeded with `prompts\/strict-peer-reviewer\.md`/);
+  assert.match(governance, /never `default`, `executor`, or a worker role/);
+  assert.match(reviewSkill, /strict-peer-reviewer/);
+  assert.match(reviewSkill, /Codex: spawn the native `code-reviewer` subagent with `prompts\/strict-peer-reviewer\.md`/);
+  assert.match(reviewSkill, /Do not use `default`, `executor`/);
+  assert.match(reviewSkill, /two distinct fallback passes/);
+  assert.match(reviewSkill, /plan's acceptance criteria \+ the diff/);
+  assert.match(reviewSkill, /diff \+ standards brief/);
+  assert.match(reviewSkill, /overall verdict is `approved` only if every stage is `approved`/);
+  assert.match(reviewSkill, /If any stage is `approved-with-changes`, the overall verdict is `approved-with-changes`/);
+  assert.match(reviewSkill, /If any stage is `rejected`, the overall verdict is `rejected`/);
+  assert.match(reviewSkill, /Review route: strict-local-fallback/);
+  assert.match(reviewSkill, /Review route: degraded-none/);
+  assert.match(reviewSkill, /Counterpart failure/);
+
+  const fallbackEnabledSkills = [
+    'skills/lhc-review/SKILL.md',
+    'skills/lhc-ralplan/SKILL.md',
+    'skills/lhc-ralph/SKILL.md',
+    'skills/lhc-investigate/SKILL.md',
+    'skills/lhc-build-fix/SKILL.md',
+    'skills/lhc-team/SKILL.md',
+  ];
+
+  const triggerWordsRequired = [
+    { word: 'missing', label: 'missing CLI' },
+    { word: 'token|out of tokens', label: 'token/quota' },
+    { word: 'rate-limited|rate limit', label: 'rate-limit' },
+    { word: 'timed out|timeout|times out', label: 'timeout' },
+    { word: 'crash|crashed|crashes', label: 'crash' },
+    { word: 'unparseable', label: 'unparseable verdict' },
+  ];
+
+  for (const file of fallbackEnabledSkills) {
+    const content = read(file);
+    const checklist = content.split('<Final_Checklist>')[1] || '';
+    assert.match(content, /timed out|timeout/, `${file} must handle timeout fallback`);
+    assert.match(content, /Review route: strict-local-fallback/, `${file} missing strict fallback route`);
+    assert.match(content, /Review route: degraded-none/, `${file} missing degraded-none route`);
+    assert.match(content, /Counterpart coverage: degraded/, `${file} missing counterpart coverage field`);
+    assert.match(content, /Counterpart failure/, `${file} missing counterpart failure field`);
+
+    const triggerProse = (content.match(
+      /(counterpart (review|CLI)[^.]*?(missing|out of tokens)[\s\S]*?)(unparseable|verdict|fallback)[^.]*\./gi
+    ) || []).join('\n');
+    for (const { word, label } of triggerWordsRequired) {
+      assert.match(
+        triggerProse,
+        new RegExp(word, 'i'),
+        `${file} trigger-prose must mention ${label} alongside other counterpart failure modes`
+      );
+    }
+
+    assert.match(checklist, /Review route|Review Route/, `${file} checklist must enforce review route`);
+    assert.match(checklist, /Counterpart coverage|counterpart coverage/, `${file} checklist must enforce counterpart coverage`);
+    assert.match(checklist, /Counterpart failure|counterpart failure/, `${file} checklist must enforce counterpart failure`);
+  }
+
+  assert.match(catalog, /strict-peer-reviewer/);
+  assert.match(catalog, /Codex uses native `code-reviewer` seeded with `prompts\/strict-peer-reviewer\.md`/);
+  assert.match(readme, /strict-peer-reviewer/);
+  assert.match(agentsMd, /strict-peer-reviewer/);
+  assert.match(claudeMd, /strict-peer-reviewer/);
+
+  const summarySurfaces = [
+    ['README.md', readme],
+    ['AGENTS.md', agentsMd],
+    ['CLAUDE.md', claudeMd],
+    ['docs/evidence.md', evidence],
+    ['scripts/precompact-reinject.js', precompact],
+    ['skills/using-lhc/SKILL.md', usingLhc],
+    ['skills/shared/iron-laws.md', ironLaws],
+  ];
+
+  for (const [file, content] of summarySurfaces) {
+    assert.match(content, /missing/, `${file} must mention missing CLI fallback`);
+    assert.match(content, /token\/quota|token.*quota|quota.*token/, `${file} must mention token/quota fallback`);
+    assert.match(content, /rate-limited/, `${file} must mention rate-limit fallback`);
+    assert.match(content, /timed out/, `${file} must mention timeout fallback`);
+    assert.match(content, /crashed|crash/, `${file} must mention crash fallback`);
+    assert.match(content, /unparseable verdict/, `${file} must mention unparseable verdict fallback`);
+  }
+});

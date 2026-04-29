@@ -21,6 +21,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
+- `../shared/confidence-escalation-policy.md`
 - `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
@@ -81,6 +82,7 @@ Use the taxonomy's source table to pick the minimum proving sources:
 - MUST keep conclusions scoped to evidence actually found. No extrapolating.
 - MUST NOT edit repo files.
 - Every non-trivial claim gets a source (doc URL, repo path, PR ref, or datasource query + response shape). Quote the passage that grounds the claim when possible.
+- MUST apply `../shared/confidence-escalation-policy.md`: do not emit `medium` or `low` confidence until the relevant research evidence lanes have been exhausted or blocked paths have been recorded.
 - If the research turns into a formal conclusion or plan, route through `lhc-review` for counterpart peer review.
 </Execution_Policy>
 
@@ -111,7 +113,12 @@ Use the taxonomy's source table to pick the minimum proving sources:
 
 6. **Synthesize** — the coordinating agent reconciles conflicts and writes the final answer.
 
-7. **Save artifact** at `~/.lhc/artifacts/research-<slug>-<UTC-ISO>.md`. Include question, intent fields, answer, evidence with links + one-line quote per claim, caveats, and an explicit "not verified" list for anything that could not be grounded.
+7. **Confidence gate** — before assigning `Confidence`, apply the research ladder from `../shared/confidence-escalation-policy.md`:
+   - For `high`, record the primary source and an independent supporting source, or record that the negative search exhausted the relevant source families.
+   - For `medium` or `low`, add an Exhaustion Ledger naming each source/tool/query/path tried, its result, blocked paths, contradictions, and the next evidence that would raise confidence.
+   - Do not use the lower label as a shortcut for an incomplete first pass.
+
+8. **Save artifact** at `~/.lhc/artifacts/research-<slug>-<UTC-ISO>.md`. Include question, intent fields, answer, evidence with links + one-line quote per claim, caveats, and an explicit "not verified" list for anything that could not be grounded.
 
    Required intent fields:
    ```
@@ -122,14 +129,23 @@ Use the taxonomy's source table to pick the minimum proving sources:
    Bug labels: <primary label>[, <secondary label>...]   (if intent is debug_issue)
    ```
 
-8. **Append to notepad** (use the helper — never hand-format)
+   Required confidence fields:
+   ```
+   Confidence: <high|medium|low>
+   Evidence Coverage: <required source families, consulted source families, independent cross-check>
+   Exhaustion Ledger: <attempted sources/tools/queries and results>
+   Confidence Blockers: <none for high, otherwise exact blockers>
+   Next Evidence That Would Raise Confidence: <specific source/tool/query/person/test>
+   ```
+
+9. **Append to notepad** (use the helper — never hand-format)
    ```bash
    node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow research --slug "<slug>" --cwd "$PWD" \
-     --kv artifact="<artifact-path>"
+     --kv artifact="<artifact-path>" --kv conf="<low|medium|high>"
    ```
 
-9. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+10. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
    ```
    LHC HANDOFF
    - Completed: research
@@ -151,5 +167,6 @@ Use the taxonomy's source table to pick the minimum proving sources:
 - [ ] At least one internal source cited (docs-schema or octocode) when the question is Wix-specific
 - [ ] Quoted passages per claim where available
 - [ ] Caveats and "not verified" items explicit
+- [ ] Confidence policy applied; `medium` or `low` includes an Exhaustion Ledger and next evidence
 - [ ] No source file was modified
 </Final_Checklist>

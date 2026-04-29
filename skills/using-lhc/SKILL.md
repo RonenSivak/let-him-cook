@@ -21,7 +21,7 @@ User intent ───────> lhc-interview ──────> classifies 
                                                                ├─ lhc-review     (peer-review gate)
                                                                └─ lhc-status     (what's in ~/.lhc)
 
-All of them persist under ~/.lhc/. Major conclusions gate on counterpart peer review.
+All of them persist under ~/.lhc/. Major conclusions gate on counterpart peer review, with a strict separate-context fallback only when the counterpart cannot run or cannot return a parseable verdict.
 ```
 
 ## Working agreements (override defaults)
@@ -29,13 +29,14 @@ All of them persist under ~/.lhc/. Major conclusions gate on counterpart peer re
 These override the default host-agent posture for the duration of any LHC workflow. Each rule is backed by research or production evidence — see `docs/evidence.md` for the citation trail.
 
 - **Read-only by default.** No Jira writes, no Slack posts, no PR comments, no Grafana mutations, no build retriggers — unless the user explicitly authorizes the specific write in the current turn. Permission rules are encoded as data in `permissions.json`.
-- **Counterpart peer review is mandatory.** For plans, diffs, investigations, and incident conclusions. Self-approval in the same context is forbidden. `scripts/peer-review.sh` is the only mechanism that satisfies this gate. *Evidence: CRITIC (Gou et al. ICLR 2024), Huang et al. ICLR 2024 — intrinsic self-correction degrades without an external oracle.*
+- **Peer review is mandatory.** For plans, diffs, investigations, and incident conclusions. Self-approval in the same context is forbidden. `scripts/peer-review.sh` is preferred; if the counterpart CLI is missing, token/quota-limited, rate-limited, timed out, crashed, or returned an unparseable verdict, use the separate-context strict fallback and record degraded counterpart coverage. *Evidence: CRITIC (Gou et al. ICLR 2024), Reflexion, CodePRM — external feedback and execution-grounded checking improve agent reliability.*
 - **Test-first for any execution.** `lhc-ralph` writes the failing test, watches it fail for the right reason, then implements. A passing test the agent never saw fail is confirmation bias, not verification. *Evidence: Anthropic's SWE-bench Verified scaffold prompt, CodePRM ACL 2025, Reflexion NeurIPS 2023.*
 - **Single-threaded by default; parallelism must be proven.** `lhc-team` fan-out requires a written independence proof. When in doubt, serialize. *Evidence: Cognition "Don't Build Multi-Agents", Augment post-mortem, SWE-bench Verified single-agent G6 (73.2%) beats multi-agent G7 (62.2%) on identical compute.*
 - **Runtime state lives under `~/.lhc/`.** Plans under `plans/`, artifacts under `artifacts/`, notepad at `notepad.md`, session state under `state/sessions/<session-id>/`.
 - **Aggressive context compaction.** LHC hooks re-inject working agreements at PreCompact; skills offload detail to `shared/` references rather than bloating SKILL.md bodies. *Evidence: Chroma "Context Rot" (2025), arXiv:2510.05381, Mindstudio Reddit "47 skills tested, 40 made output worse."*
 - **Readiness first.** Every substantial skill begins with `check-readiness.js`. Blocked readiness hard-stops unless the user explicitly opts into degraded mode in the same turn.
 - **Evidence over assumption.** Fresh verification output beats remembered verification. Every research claim cites a source.
+- **Confidence after exhaustion.** `lhc-research`, `lhc-investigate`, and `lhc-standards` cannot return `medium` or `low` after a thin first pass. They must record Evidence Coverage, an Exhaustion Ledger, Confidence Blockers, and the next evidence that would raise confidence.
 - **No inline plan invention.** `lhc-ralph` requires a plan file in `~/.lhc/plans/`. Inventing one inline is forbidden.
 - **Hard-coded loop guard.** Three identical (tool, args) calls = change strategy; five = stop and escalate. `scripts/loop-guard.js` enforces. *Evidence: Columbia DAPLab "9 failure patterns of coding agents" (Nov 2025) — prompts alone do not stop loops.*
 
@@ -80,6 +81,7 @@ Surface the kill switches if the user says "turn off LHC", "disable the plugin",
 
 - **Treating the contract files as code.** Only roles with files under `prompts/*.md` or `agents/*.md` are real. Catalog entries in `AGENTS.md` / `CLAUDE.md` do not create runnable roles by themselves.
 - **Self-approval.** "I already reviewed it mentally" is not peer review.
+- **Premature low confidence.** Lowering confidence before trying alternate source families is incomplete research, not honesty.
 - **Silent degraded mode.** Missing MCPs cannot be papered over with plausible-sounding output.
 - **Polite-stop reporting.** Reporting "I approved the plan" before writing the file and running peer review. The only terminal states are: artifact saved + verdict recorded, or explicit refusal + reason.
 - **Three failed iterations.** If `lhc-ralph` fails the same fix three times, stop and question the plan. Do not attempt fix #4.
@@ -96,3 +98,4 @@ Surface the kill switches if the user says "turn off LHC", "disable the plugin",
 - Permission rules as data: `permissions.json`.
 - Runtime layout: `docs/runtime-contract.md`.
 - Peer-review mechanics: `skills/shared/peer-review-governance.md`.
+- Confidence escalation policy: `skills/shared/confidence-escalation-policy.md`.

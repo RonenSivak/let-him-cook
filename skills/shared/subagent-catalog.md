@@ -14,6 +14,7 @@ Model pinning is enforced by each agent's frontmatter. Do not override the tier 
 | `debugger` | sonnet | `agents/debugger.md` | Root-cause isolation before any fix is proposed. |
 | `executor` | sonnet | `agents/executor.md` | Bounded implementation with smallest diff that matches the plan. |
 | `verifier` | sonnet | `agents/verifier.md` | Fresh-evidence verification of a completion claim. |
+| `strict-peer-reviewer` | opus | `agents/strict-peer-reviewer.md` | Claude Code strict read-only fallback peer review when counterpart CLI review is unavailable, rate-limited, out of tokens, times out, crashes, or returns an unparseable verdict. Codex uses native `code-reviewer` seeded with `prompts/strict-peer-reviewer.md` for the same fallback role. |
 | `plugin-structure-reviewer` | opus | `agents/plugin-structure-reviewer.md` | Plugin manifests, catalogs, hooks, role files, host compatibility, and runtime safety. |
 | `skill-authoring-reviewer` | opus | `agents/skill-authoring-reviewer.md` | Skill triggers, workflows, progressive disclosure, evidence grounding, and evaluation coverage. |
 
@@ -42,6 +43,6 @@ If you find yourself reaching for one of the above, use the alternative in the r
 ## Routing Guidance
 
 - Use subagents for bounded parallel work within the current session.
-- Use counterpart-model peer review (`peer-review.sh`) for the final sign-off pass. Never self-approve.
+- Use counterpart-model peer review (`peer-review.sh`) for the final sign-off pass. If the counterpart is unavailable, use `strict-peer-reviewer` as the read-only separate-context fallback and record degraded counterpart coverage. Never self-approve.
 - External write access stays disabled unless the user explicitly authorizes the specific write.
 - The coordinating agent never spawns lanes that spawn lanes. Fan-out is flat.

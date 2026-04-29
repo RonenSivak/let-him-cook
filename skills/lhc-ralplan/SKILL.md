@@ -9,7 +9,7 @@ when_to_use: The user wants an up-front plan for a non-trivial Wix change, or th
 Substantial plans that need internal research, repo context, and a durable local artifact before any code is touched. This skill PRODUCES a plan file and STOPS. It never implements.
 
 <Iron_Law>
-NO PLAN IS APPROVED WITHOUT COUNTERPART PEER REVIEW. A plan with `peer_review: pending` is a draft, not a plan. Saving the file is not sign-off.
+NO PLAN IS APPROVED WITHOUT PEER REVIEW. Counterpart review via `peer-review.sh` is preferred. If the counterpart is unavailable, the separate-context `strict-peer-reviewer` fallback must run and the plan must record degraded counterpart coverage. A plan with `peer_review: pending` is a draft, not a plan. Saving the file is not sign-off.
 
 NO STUB LANGUAGE. "TBD", "TODO", "similar to above", "implement later" are plan failures. Revise or stop.
 
@@ -47,7 +47,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - MUST write the plan to `~/.lhc/plans/ralplan-<slug>-<UTC-ISO>.md` before stopping.
 - MUST NOT edit, create, or delete any file outside of `~/.lhc/`.
 - MUST NOT invoke `lhc-ralph`, `lhc-team`, or any execution skill from within this skill.
-- MUST route the plan to counterpart peer review via `scripts/peer-review.sh` before marking it approved.
+- MUST route the plan to counterpart peer review via `scripts/peer-review.sh` before marking it approved. If counterpart review cannot complete, MUST use the strict local fallback from `../shared/peer-review-governance.md` before returning degraded.
 - If the user says "just implement it", refuse and tell them to invoke `lhc-ralph` after the plan is saved.
 - If required MCPs are missing, hard-stop unless the user explicitly says to continue in degraded mode in the same turn.
 - A plan must be executable as-written. Stub language ("TBD", "TODO", "implement later", "TBD by team") is a plan failure — revise instead.
@@ -154,7 +154,10 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    → then poll with BashOutput(bash_id) every 10-20s until the "## Verdict" section appears.
    ```
    Capture the `[peer-review] ... log=<path>` line from stderr; that's your recovery trail if BashOutput stops streaming.
+   If counterpart review fails because the CLI is missing, out of tokens, rate-limited, timed out, crashed before a verdict, or returned an unparseable verdict, run the strict local fallback from `../shared/peer-review-governance.md` and record `Review route: strict-local-fallback`, `Counterpart coverage: degraded`, and `Counterpart failure: <missing cli|token limit|rate limit|timeout|crash|unparseable verdict>`.
+   If strict local fallback also cannot run, record `Verdict: degraded`, `Review route: degraded-none`, `Counterpart coverage: degraded`, and the exact `Counterpart failure`.
    If rejected, revise and re-review up to 3 times. If still rejected, save the latest plan, record the verdict, and stop.
+   Append a final **Peer Review** section to the plan with verdict, Review route, Counterpart coverage, Counterpart failure when applicable, and key findings.
 
 7. **Append to notepad** (use the helper — never hand-format)
    ```bash
@@ -205,6 +208,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - [ ] File paths cited on 80%+ of claims about existing code
 - [ ] All risks have a mitigation
 - [ ] Peer-review verdict recorded in the plan file
+- [ ] Peer Review section records Review route, Counterpart coverage, and Counterpart failure when applicable
 - [ ] ADR section present
 - [ ] No stub language ("TBD", "TODO", "implement later") anywhere in the plan
 - [ ] No source file in the working repo was modified

@@ -12,7 +12,17 @@ Default routing:
 - Codex leader → Claude reviewer
 - Claude leader → Codex reviewer
 
-All reviews go through [`scripts/peer-review.sh`](../../scripts/peer-review.sh). The script applies two independent guards so the reviewer can never mutate the artifact:
+Fallback routing:
+
+- If the counterpart CLI is missing, token/quota-limited, rate-limited, timed
+  out, crashed, or returned an unparseable verdict, invoke the strict fallback
+  in a separate context.
+- This is a strict local fallback, not counterpart coverage. Record
+  `Review route: strict-local-fallback` in the review artifact.
+- If the strict fallback also cannot run, record `Review route: degraded-none`
+  and `Verdict: degraded`.
+
+All counterpart reviews go through [`scripts/peer-review.sh`](../../scripts/peer-review.sh). The script applies two independent guards so the counterpart reviewer can never mutate the artifact:
 
 1. A **review-only prompt envelope** prepended to every call — forbids implementation, file edits, commits, PRs, Slack/Jira writes.
 2. A **sandboxed execution layer** — `codex exec --sandbox read-only` makes file writes structurally impossible, regardless of what the prompt says.
@@ -77,9 +87,51 @@ Skills parse the Verdict line and record the full text verbatim in the review ar
 - The invoking skill saves the verdict + extracted findings to the skill's own artifact under `~/.lhc/artifacts/`.
 - If the review is not clean (rejected), do not present the work as approved. Revise and re-run.
 
-## Degraded mode
+## Strict Local Fallback
 
-If the counterpart CLI is missing, the script exits with code 2 and the verdict is recorded as `degraded`. Missing coverage must be named explicitly in the invoking skill's artifact — silent degraded mode is forbidden.
+Use `strict-peer-reviewer` when `peer-review.sh` exits 2, reports a missing CLI,
+hits a quota/token/rate-limit error, crashes before the `## Verdict` section,
+times out after the caller's maximum wait, or returns an unparseable verdict
+(no `## Verdict` line in output). "Unparseable verdict" is detected by the
+caller parsing reviewer output, not by a dedicated `peer-review.sh` exit code.
+
+The fallback reviewer must:
+
+- run in a separate context/subagent from the producing agent
+- stay read-only
+- use a structurally review-only surface:
+  - Claude Code: `agents/strict-peer-reviewer.md` with `tools: Read, Grep, Glob`
+  - Codex: native `code-reviewer` subagent seeded with `prompts/strict-peer-reviewer.md`
+    and no implementation task; never `default`, `executor`, or a worker role
+- return the fixed review structure from `prompts/strict-peer-reviewer.md` or
+  `agents/strict-peer-reviewer.md`
+- return only `approved`, `approved-with-changes`, or `rejected`; `degraded` is
+  reserved for orchestration failure when fallback cannot run
+- preserve the normal `code-review` two-stage contract by running two distinct
+  fallback passes:
+  - fallback stage 1 receives the plan acceptance criteria plus diff and returns
+    criterion-by-criterion `## Spec Compliance`
+  - fallback stage 2 receives the diff plus standards brief and returns
+    `## Quality Assessment`
+- cite concrete artifact sections, file paths, commands, or source links
+- explicitly state `Review Route: strict-local-fallback`
+
+Overall verdict handling:
+
+- all stages `approved` -> overall `approved`, with `counterpart_coverage=degraded`
+- any stage `approved-with-changes` and no stage rejected -> overall
+  `approved-with-changes`, with `counterpart_coverage=degraded`
+- any stage `rejected` -> overall `rejected`
+- fallback unavailable -> overall `degraded`
+
+Do not hide missing counterpart coverage. The artifact must say which CLI failed
+or which quota/token condition blocked it.
+
+## Degraded Mode
+
+If both counterpart review and strict local fallback are unavailable, the verdict
+is recorded as `degraded`. Missing coverage must be named explicitly in the
+invoking skill's artifact - silent degraded mode is forbidden.
 
 ## Environment knobs
 

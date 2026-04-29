@@ -4,7 +4,8 @@ Every LHC skill enforces an **Iron Law** — a single, non-negotiable invariant 
 
 ## Global laws (apply to every skill)
 
-- **No self-approval in the same context.** The producing agent never signs off on its own output. Counterpart-model peer review is required for plans, investigations, diffs, and incident conclusions. `peer-review.sh` is the only mechanism that satisfies this gate.
+- **No self-approval in the same context.** The producing agent never signs off on its own output. Counterpart-model peer review is required for plans, investigations, diffs, and incident conclusions. `peer-review.sh` is the preferred mechanism. If the counterpart CLI is missing, token/quota-limited, rate-limited, timed out, crashed, or returned an unparseable verdict, a separate-context strict fallback may satisfy the gate while recording `counterpart_coverage=degraded`.
+- **No premature low confidence.** Workflows that emit `Confidence: high|medium|low` must apply `confidence-escalation-policy.md`. `medium` or `low` is allowed only after reasonable evidence paths were exhausted or blocked paths were recorded.
 - **No silent degraded mode.** If readiness reports `blocked`, either stop and print the install checklist, or require the user to explicitly opt into degraded mode in the same turn. Missing coverage must be named in the artifact.
 - **No external writes by default.** Jira, Slack, Grafana, PR comments, and DevEx write-side actions are forbidden unless the user explicitly requests the specific write in the current session. Vague wording ("handle it", "finish it", "take care of it") does not authorize writes.
 - **Fresh evidence, not remembered evidence.** "The tests passed last time" is not verification. "The build is green" without a `gh run view` or a fresh devex query is not verification.
@@ -14,7 +15,7 @@ Every LHC skill enforces an **Iron Law** — a single, non-negotiable invariant 
 
 | Skill | Iron Law |
 |-------|----------|
-| `lhc-ralplan` | NO PLAN IS APPROVED WITHOUT COUNTERPART PEER REVIEW. A plan with `peer_review: pending` is a draft, not a plan. |
+| `lhc-ralplan` | NO PLAN IS APPROVED WITHOUT PEER REVIEW. Counterpart review via `peer-review.sh` is preferred; the strict separate-context fallback may satisfy the gate when the counterpart cannot complete a parseable verdict, with `counterpart_coverage=degraded` recorded. A plan with `peer_review: pending` is a draft, not a plan. |
 | `lhc-ralph` | NO EXECUTION WITHOUT A PLAN FILE. Inventing the plan inline is forbidden. If no plan exists, stop and route to `lhc-ralplan`. |
 | `lhc-investigate` | NO CONCLUSION WITHOUT AT LEAST TWO CORRELATED SURFACES AND PEER REVIEW. Single-surface conclusions are labeled `hypothesis`, not `root cause`. |
 | `lhc-build-fix` | NO FIX RECOMMENDATION WITHOUT ROOT CAUSE EVIDENCE. "Probably flaky" requires three runs of evidence before a `flaky-test` classification. |

@@ -94,6 +94,9 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    )
    → poll BashOutput until "## Verdict" appears.
    ```
+   If counterpart review fails because the CLI is missing, out of tokens, rate-limited, timed out, crashed before a verdict, or returned an unparseable verdict, run the strict local fallback from `../shared/peer-review-governance.md` and record `Review route: strict-local-fallback`, `Counterpart coverage: degraded`, and `Counterpart failure: <missing cli|token limit|rate limit|timeout|crash|unparseable verdict>`.
+   If strict local fallback also cannot run, record `Verdict: degraded`, `Review route: degraded-none`, `Counterpart coverage: degraded`, and the exact `Counterpart failure`.
+   Append a final **Peer Review** section to the triage artifact with verdict, Review route, Counterpart coverage, Counterpart failure when applicable, and key findings.
 
 7. **Append to notepad** (use the helper — never hand-format)
    ```bash
@@ -134,6 +137,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - [ ] If flaky, evidence spans at least 3 runs
 - [ ] Artifact saved under `~/.lhc/artifacts/`
 - [ ] Peer-review verdict recorded
+- [ ] Peer Review section records Review route, Counterpart coverage, and Counterpart failure when applicable
 - [ ] Builds were NOT retriggered (unless explicitly authorized)
 - [ ] No repo file was modified in this skill
 </Final_Checklist>

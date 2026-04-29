@@ -28,7 +28,7 @@ It is **not** a replacement for Wix MCP servers and **not** a write-enabled auto
 
 - **Node.js 18+** (helper scripts under `scripts/` use Node).
 - One or both host CLIs: **Claude Code 2.x** and/or **Codex CLI**.
-- The counterpart CLI for peer review. Inside Claude Code, `codex` must be on `PATH`. Inside Codex, `claude` must be on `PATH`. If one is missing, review verdicts downgrade to `degraded` but nothing hard-fails.
+- The counterpart CLI for peer review. Inside Claude Code, `codex` must be on `PATH`. Inside Codex, `claude` must be on `PATH`. If one is missing, token/quota-limited, rate-limited, timed out, crashes before a verdict, or returns an unparseable verdict, LHC falls back to a strict separate-context reviewer and records `counterpart_coverage=degraded`. If the fallback also cannot run, the review verdict is `degraded`.
 - Optional (recommended) MCP servers — LHC detects them at readiness time and tells you how to install any that are missing:
   - `mcp-s` (Wix MCP gateway — covers `devex`, `grafana`, `root-cause`, `docs-schema`, `jira`, `slack`)
   - `octocode` (GitHub repo discovery, PR archaeology)
@@ -250,7 +250,7 @@ LHC_PLUGIN_ROOT="${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"
 sh "$LHC_PLUGIN_ROOT"/scripts/peer-review.sh --mode <mode> --prompt-file <file>
 ```
 
-Modes: `code-review`, `plan`, `investigation`, `conclusion`, `analysis`. `peer-review.sh` auto-detects whether it was invoked from Codex or Claude via the plugin-root environment variables. If the counterpart CLI is absent, the script exits non-zero and the calling skill records the verdict as `degraded`.
+Modes: `code-review`, `plan`, `investigation`, `conclusion`, `analysis`. `peer-review.sh` auto-detects whether it was invoked from Codex or Claude via the plugin-root environment variables. If the counterpart CLI is absent, token/quota-limited, rate-limited, times out, crashes before a verdict, or returns an unparseable verdict, the calling skill invokes a strict separate-context fallback and records `Review route: strict-local-fallback` plus `counterpart_coverage=degraded`. Claude uses `agents/strict-peer-reviewer.md`; Codex uses native `code-reviewer` seeded with `prompts/strict-peer-reviewer.md`. If the fallback also cannot run, the calling skill records `Verdict: degraded`.
 
 Plugin and skill diffs get an extra local specialist loop before final counterpart sign-off:
 
@@ -258,6 +258,10 @@ Plugin and skill diffs get an extra local specialist loop before final counterpa
 - `skill-authoring-reviewer` checks skill triggers, workflow clarity, progressive disclosure, evidence grounding, and evaluation coverage.
 
 Both reviewers use `skills/shared/plugin-skill-review-evidence.md` and return `approved`, `approved-with-changes`, or `rejected`. If both approve, `lhc-review` continues to counterpart review. If either rejects, or returns unaccepted `approved-with-changes`, `lhc-review` records the specialist verdicts and stops with a non-approved verdict; the producing/main workflow fixes findings outside the review skill and reruns the reviewers.
+
+### Confidence discipline
+
+`lhc-research`, `lhc-investigate`, and `lhc-standards` use [`skills/shared/confidence-escalation-policy.md`](skills/shared/confidence-escalation-policy.md). They should not return `medium` or `low` after a thin first pass. A lower-than-high artifact must include Evidence Coverage, an Exhaustion Ledger, Confidence Blockers, and the next evidence that would raise confidence. This keeps confidence honest without rewarding premature uncertainty.
 
 ---
 
@@ -298,6 +302,7 @@ See [`AGENTS.md`](AGENTS.md) for the Codex operating contract, [`CLAUDE.md`](CLA
 - **Test-first execution.** Failing tests before implementation (Anthropic SWE-bench scaffold, CodePRM ACL 2025).
 - **Single-threaded by default.** Fan-out in `lhc-team` requires a written independence proof (Cognition "Don't Build Multi-Agents", SWE-bench Verified G6 > G7).
 - **Tool-grounded verification.** Counterpart peer review over same-context self-approval (CRITIC ICLR 2024, Huang et al. ICLR 2024).
+- **Evidence-calibrated confidence.** Lower-than-high confidence requires an exhaustion ledger, not a vibe (NAACL 2024 confidence-calibration survey, CRITIC, CodePRM).
 - **Context compaction over accumulation.** PreCompact hook re-injects agreements; skills use progressive disclosure (Chroma Context Rot 2025, arXiv:2510.05381).
 - **Hard-coded loop guard.** Three identical tool calls ⇒ strategy-switch; five ⇒ stop (Columbia DAPLab failure taxonomy Nov 2025).
 - **Permission rules as data.** Amp-style DSL in [`permissions.json`](permissions.json).
@@ -308,7 +313,7 @@ See [`AGENTS.md`](AGENTS.md) for the Codex operating contract, [`CLAUDE.md`](CLA
 
 **"Unknown workflow" from `check-readiness.js`.** The workflow name must be lowercase and defined in [`scripts/readiness-registry.json`](scripts/readiness-registry.json).
 
-**Peer review verdict is `degraded`.** The counterpart CLI is missing. Install both `claude` and `codex` on your `PATH`, or accept degraded mode per session.
+**Peer review verdict is `degraded`.** Counterpart review and the strict local fallback both failed or could not run. Install both `claude` and `codex` on your `PATH`, check token/rate limits, and inspect the review artifact's `Counterpart failure` and `Review route` fields.
 
 **Hooks don't fire.** In Claude Code, confirm `/plugin list` shows `let-him-cook`. In Codex, confirm `~/.agents/plugins/marketplace.json` contains `let-him-cook` and `~/.codex/config.toml` contains `[plugins."let-him-cook@ronensi-local"] enabled = true`. Then check for `DISABLE_LHC=1` or `LHC_SKIP_HOOKS` in your shell env.
 

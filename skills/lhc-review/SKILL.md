@@ -1,7 +1,7 @@
 ---
 name: lhc-review
-description: Routes a plan, diff, investigation, or conclusion to the counterpart model for mandatory peer review, and saves the verdict to ~/.lhc/artifacts/review-*.md. Use as the final gate before presenting an LHC artifact as approved. Does not modify the reviewed artifact or implement suggestions.
-when_to_use: An existing LHC artifact (plan, diff, investigation, conclusion) needs counterpart-model sign-off before being presented as final.
+description: Routes a plan, diff, investigation, or conclusion to the counterpart model for mandatory peer review, falls back to a strict independent local reviewer when the counterpart is unavailable, and saves the verdict to ~/.lhc/artifacts/review-*.md. Use as the final gate before presenting an LHC artifact as approved. Does not modify the reviewed artifact or implement suggestions.
+when_to_use: An existing LHC artifact (plan, diff, investigation, conclusion) needs independent peer-review sign-off before being presented as final — counterpart-model review when available, strict separate-context local fallback when the counterpart CLI cannot complete a parseable verdict.
 ---
 
 # LHC Review
@@ -11,7 +11,7 @@ Final peer-review gate. Routes an input artifact to the counterpart model, captu
 <Iron_Law>
 NO MODIFICATION OF THE REVIEWED ARTIFACT. The reviewer records the verdict; it does not edit the input. Applying reviewer suggestions is the user's call, not this skill's.
 
-NO SELF-APPROVAL. If the counterpart CLI is missing, the verdict is `degraded` — not `approved`. Missing coverage must be named in the review artifact.
+NO SELF-APPROVAL. If the counterpart CLI is missing, token/quota-limited, rate-limited, timed out, crashed, or returned an unparseable verdict, run the strict fallback in a separate context. If that fallback cannot run either, the verdict is `degraded` — not `approved`. Missing counterpart coverage must be named in the review artifact.
 
 TWO-STAGE REVIEW FOR DIFFS. For `code-review` mode, run two distinct passes: (1) **spec-compliance** — does the diff satisfy every acceptance criterion in the plan? (2) **code-quality** — is the diff correct, idiomatic, and minimal? These are separate invocations of `peer-review.sh` with focused prompts. Evidence: Superpowers' two-stage pattern (spec then quality), Huang et al. ICLR 2024 on narrowly-scoped review instructions outperforming open-ended critique.
 
@@ -47,7 +47,8 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 <Execution_Policy>
 - MUST NOT modify the reviewed artifact.
 - MUST capture the verdict as one of `approved`, `approved-with-changes`, `rejected`, `degraded`.
-- If the counterpart CLI is missing, mark the verdict `degraded` and still save the artifact.
+- If the counterpart CLI is missing, out of tokens, rate-limited, times out, crashes before a verdict, or returns an unparseable verdict, MUST invoke `strict-peer-reviewer` as a strict local fallback in a separate context and record `Review route: strict-local-fallback`.
+- If both counterpart and strict local fallback are unavailable, mark the verdict `degraded` and still save the artifact with `Review route: degraded-none`.
 - MUST save the review artifact at `~/.lhc/artifacts/review-<slug>-<UTC-ISO>.md` before stopping.
 - MUST NOT implement any reviewer suggestion — that is the user's decision.
 </Execution_Policy>
@@ -85,7 +86,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
    Inside Codex, the equivalent uses `shell` with `&` + `tail -f` on the log path.
 
-   `peer-review.sh` mirrors all reviewer output to `~/.lhc/logs/peer-review/<mode>-<UTC>.log` and prints `[peer-review] streaming to: <path>` to stderr on start. **Surface that path to the user immediately** so they can `tail -f` it while the counterpart thinks. Set `LHC_PEER_REVIEW_NO_LOG=1` only if a caller needs pristine stdout.
+   `peer-review.sh` mirrors all reviewer output to `~/.lhc/logs/peer-review/<mode>-<UTC>-<pid>.log` and on start prints `[peer-review] leader=<leader> mode=<mode> sandbox=read-only log=<path>` to stderr (followed by a typical-runtime hint). **Surface that log path to the user immediately** so they can `tail -f` it while the counterpart thinks. Set `LHC_PEER_REVIEW_NO_LOG=1` only if a caller needs pristine stdout.
 
    **For live streaming of the counterpart's output into the chat**, launch `peer-review.sh` with `run_in_background: true` and attach the `Monitor` tool to the log file, e.g.:
    ```
@@ -93,16 +94,32 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    ```
    Prefer this pattern for long reviews (>30s) or when the user has asked to see the reviewer's reasoning. For quick reviews, the default foreground call is fine and the log path is enough.
 
+   If `peer-review.sh` exits 2, prints a missing CLI error, reports token/quota/rate-limit exhaustion, times out, or completes without a parseable `## Verdict`, immediately run the strict local fallback:
+   - Codex: spawn the native `code-reviewer` subagent with `prompts/strict-peer-reviewer.md` as the first instruction block and require read-only review. Codex native `code-reviewer` is the closest review-only surface Codex provides; the read-only constraint is enforced through the seeded prompt and Codex host configuration rather than a structural tool denylist, so callers must run it in a configuration that does not grant edit/exec tools. Do not use `default`, `executor`, or any implementation-capable role.
+   - Claude Code: use the `strict-peer-reviewer` plugin agent from `agents/strict-peer-reviewer.md`.
+
+   The fallback reviewer is review-only and independent. It may satisfy the peer-review gate, but the review artifact must still include:
+   ```
+   Review route: strict-local-fallback
+   Counterpart coverage: degraded
+   Counterpart failure: <missing cli|token limit|rate limit|timeout|crash|unparseable verdict>
+   ```
+
+   The strict fallback may return only `approved`, `approved-with-changes`, or `rejected`. If the fallback cannot run, save `Verdict: degraded`, `Review route: degraded-none`, and the exact missing coverage.
+   For `code-review` mode, the strict fallback must run as two distinct fallback passes with the same focused inputs as counterpart review:
+   - **Fallback Stage 1 — Spec compliance.** Prompt with the plan's acceptance criteria + the diff + `prompts/strict-peer-reviewer.md`, and require criterion-by-criterion evidence.
+   - **Fallback Stage 2 — Code quality + standards compliance.** Prompt with the diff + standards brief + `prompts/strict-peer-reviewer.md`, and require correctness, minimality, tests, standards, security, and privacy findings.
+
 4. **For `code-review` mode, run two stages** (one call each, scoped prompts):
    - **Stage 1 — Spec compliance.** Prompt the counterpart with: the plan's acceptance criteria + the diff + a checklist asking "for each criterion N, does the diff satisfy it? Cite file:line evidence. If unmet, flag." Record verdict.
    - **Stage 2 — Code quality + standards compliance.** Prompt the counterpart with: the diff + the standards brief (`~/.lhc/artifacts/standards-<slug>-<UTC-ISO>.md`, if one exists) + a checklist asking "(a) correctness, minimality, test coverage against acceptance criteria; (b) adherence to the brief's Applied Rulings; (c) any violation of the brief's Non-negotiables (security, a11y, Wix SDK). Call out smells." Record verdict. If no standards brief exists and the change modifies source files, note this as a gap in the review artifact — it is a missed gate, not an automatic block.
-   - The overall verdict is `approved` only if both stages are `approved` or `approved-with-changes`.
+   - The overall verdict is `approved` only if every stage is `approved`. If any stage is `approved-with-changes`, the overall verdict is `approved-with-changes`. If any stage is `rejected`, the overall verdict is `rejected`.
 
    For non-diff modes (`plan`, `investigation`, `conclusion`, `analysis`) a single pass is sufficient.
 
 5. **Capture and classify** the reviewer's output(s) into a verdict.
 
-6. **Save the review artifact** at `~/.lhc/artifacts/review-<slug>-<UTC-ISO>.md`. Include: input path, mode, leader, per-stage verdicts (if two-stage), specialist reviewer verdicts (when step 2 ran), overall verdict, key findings (verbatim from reviewer where possible), residual risks, explicit "missing coverage" line if degraded.
+6. **Save the review artifact** at `~/.lhc/artifacts/review-<slug>-<UTC-ISO>.md`. Include: input path, mode, leader, review route (`counterpart`, `strict-local-fallback`, or `degraded-none`), counterpart coverage, counterpart failure when applicable, per-stage verdicts (if two-stage), specialist reviewer verdicts (when step 2 ran), strict fallback verdict when applicable, overall verdict, key findings (verbatim from reviewer where possible), residual risks, explicit "missing coverage" line if degraded.
 
 7. **Append to notepad** (use the helper — never hand-format)
    ```bash
@@ -127,7 +144,11 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 <Final_Checklist>
 - [ ] Input artifact was NOT modified
 - [ ] For `code-review`: both spec-compliance and code-quality stages ran and have recorded verdicts
-- [ ] Verdict classified (overall = strongest shared level)
+- [ ] Verdict classified using the explicit aggregation rule from `../shared/peer-review-governance.md`: any stage `rejected` → overall `rejected`; else any stage `approved-with-changes` → overall `approved-with-changes`; else overall `approved`. Specialist pre-flight verdicts are aggregated the same way before the counterpart/fallback stage runs.
+- [ ] Review route recorded (`counterpart`, `strict-local-fallback`, or `degraded-none`)
+- [ ] Counterpart coverage recorded
+- [ ] Counterpart failure recorded when applicable
+- [ ] If counterpart failed, strict local fallback was attempted before returning degraded
 - [ ] Review artifact saved under `~/.lhc/artifacts/`
 - [ ] If degraded, missing coverage is explicit
 </Final_Checklist>

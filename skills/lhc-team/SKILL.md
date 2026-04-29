@@ -6,7 +6,7 @@ when_to_use: A reviewed plan exists and cleanly decomposes into 2+ independent l
 
 # LHC Team
 
-Multi-lane orchestration on top of a reviewed plan. Dispatches subagents per lane. Coordinates, synthesizes, and gates completion on peer review. The coordinating agent does not implement directly.
+Multi-lane orchestration on top of a reviewed plan. Dispatches subagents per lane. Coordinates, synthesizes, and gates completion on peer review. Counterpart review is preferred; strict local fallback is allowed only when the counterpart cannot run. The coordinating agent does not implement directly.
 
 <Iron_Law>
 NO LANE MAY SPAWN LANES. Fan-out is flat — the coordinator is the only integrator. Subagents cannot call Task themselves.
@@ -49,7 +49,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 <Execution_Policy>
 - MUST require a plan file in `~/.lhc/plans/`. If missing, STOP and tell the user to invoke `lhc-ralplan`.
 - MUST keep external systems read-only unless the plan authorizes a specific write.
-- MUST gate completion on BOTH verification evidence AND counterpart peer review.
+- MUST gate completion on BOTH verification evidence AND peer review. If counterpart review cannot complete, MUST use the strict local fallback from `../shared/peer-review-governance.md` before returning degraded.
 - MUST save the team artifact at `~/.lhc/artifacts/team-<slug>-<UTC-ISO>.md`.
 - The coordinating agent does NOT implement directly — it dispatches to `executor` and other lane agents via `Task(...)`.
 - Subagents cannot spawn subagents — keep the fan-out flat.
@@ -92,8 +92,10 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    )
    → poll BashOutput until "## Verdict" appears.
    ```
+   If counterpart review fails because the CLI is missing, out of tokens, rate-limited, timed out, crashed before a verdict, or returned an unparseable verdict, run the strict local fallback from `../shared/peer-review-governance.md`. For `code-review`, pass the plan acceptance criteria plus diff to fallback stage 1 and the diff plus standards brief to fallback stage 2. Record `Review route: strict-local-fallback`, `Counterpart coverage: degraded`, and `Counterpart failure: <missing cli|token limit|rate limit|timeout|crash|unparseable verdict>`.
+   If strict local fallback also cannot run, record `Verdict: degraded`, `Review route: degraded-none`, `Counterpart coverage: degraded`, and the exact `Counterpart failure`.
 
-7. **Save artifact** at `~/.lhc/artifacts/team-<slug>-<UTC-ISO>.md` — lane map, independence proof, per-lane summary, aggregated files touched, verification evidence, peer-review verdict.
+7. **Save artifact** at `~/.lhc/artifacts/team-<slug>-<UTC-ISO>.md` — lane map, independence proof, per-lane summary, aggregated files touched, verification evidence, peer-review verdict, Review route, Counterpart coverage, Counterpart failure when applicable.
 
    For bug-fix plans, also include the bug classification and the failing reproduction/regression evidence each lane used.
 
@@ -127,5 +129,6 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - [ ] Coordinating agent did not implement directly
 - [ ] Verification evidence gathered
 - [ ] Peer review recorded
+- [ ] Review route, Counterpart coverage, and Counterpart failure recorded when applicable
 - [ ] Team artifact saved under `~/.lhc/artifacts/`
 </Final_Checklist>

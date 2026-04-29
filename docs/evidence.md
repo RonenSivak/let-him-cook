@@ -2,7 +2,7 @@
 
 Every non-trivial design choice in this plugin should be defensible from research or production evidence — not personal preference. This document maps each LHC design decision to its empirical source. If you want to add a new pattern to LHC, it should either appear here with a citation or gather citations before it ships.
 
-Last reviewed: 2026-04-20.
+Last reviewed: 2026-04-29.
 
 ---
 
@@ -34,13 +34,26 @@ Last reviewed: 2026-04-20.
 
 ## 3. Counterpart peer review as the approval gate (`lhc-review`, `peer-review.sh`)
 
-**Rule:** Plans, diffs, investigations, and incident conclusions route to the counterpart model (Claude ↔ Codex). Self-approval in the same context is forbidden. For diffs, run a two-stage review (spec compliance, then code quality).
+**Rule:** Plans, diffs, investigations, and incident conclusions route to the counterpart model (Claude ↔ Codex). Self-approval in the same context is forbidden. For diffs, run a two-stage review (spec compliance, then code quality). If the counterpart CLI is missing, token/quota-limited, rate-limited, timed out, crashed, or returned an unparseable verdict, a separate-context strict fallback can satisfy the review gate while recording degraded counterpart coverage.
 
 **Evidence:**
 - **Tool-grounded verification wins** (CRITIC, Reflexion NeurIPS 2023 [arXiv:2303.11366](https://arxiv.org/abs/2303.11366), CorrectBench) — the *grounding*, not the *two LLMs*, is the lift. Routing to a counterpart model is a cheap way to force fresh tool invocation outside the producing agent's context.
 - **Agent-as-a-Judge** ([arXiv:2510.24367](https://arxiv.org/html/2510.24367v1)): tool-augmented judges raise agreement with ground truth from <42% to ~72%.
+- **Claude Code subagents** ([docs](https://code.claude.com/docs/en/subagents)): focused subagents run in separate context windows, can have limited tool access, and are recommended for read-only code review patterns. This supports the local fallback shape when the counterpart is unavailable.
 - **Superpowers' two-stage review pattern** (spec compliance then code quality, separate invocations) — the canonical production shape for dual-pass review.
 - **Anthropic Claude Code release notes**: `ENABLE_PROMPT_CACHING_1H` enables 1-hour prompt cache on the API. Peer-review calls share prompt prefixes (diff + criteria) and benefit materially; LHC's `peer-review.sh` defaults this flag on.
+
+---
+
+## 3b. Confidence after evidence exhaustion (`confidence-escalation-policy.md`)
+
+**Rule:** Workflows that emit `Confidence: high|medium|low` must consult the relevant source families before returning less than high. `medium` or `low` requires an Exhaustion Ledger, Confidence Blockers, and specific next evidence. This avoids both fake certainty and premature uncertainty.
+
+**Evidence:**
+- **Confidence calibration survey** (Geng et al., NAACL 2024, [ACL Anthology](https://aclanthology.org/2024.naacl-long.366/)): LLM confidence estimation and calibration are needed because factual errors remain common; confidence should be treated as a risk-mitigation signal, not prose decoration.
+- **CRITIC ICLR 2024** ([ICLR Proceedings](https://proceedings.iclr.cc/paper_files/paper/2024/hash/fef126561bbf9d4467dbb8d27334b8fe-Abstract-Conference.html)): tool-interactive critique improves outputs by validating and revising with external feedback. The policy maps this to a required independent cross-check.
+- **CodePRM ACL Findings 2025** ([ACL Anthology](https://aclanthology.org/2025.findings-acl.428/)): Generate-Verify-Refine with execution feedback improves code generation. LHC's confidence gate uses the same shape: gather, verify, refine, then label.
+- **OpenAI SWE-bench Verified** ([OpenAI](https://openai.com/index/introducing-swe-bench-verified/)): professional annotators filtered underspecified tasks and unfair tests to create higher-confidence evaluations. LHC mirrors this by making evidence gaps explicit instead of burying them inside confidence words.
 
 ---
 

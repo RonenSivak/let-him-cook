@@ -21,6 +21,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/rationalization-guard.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
+- `../shared/confidence-escalation-policy.md`
 - `../shared/peer-review-governance.md`
 - `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
@@ -43,11 +44,12 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 <Execution_Policy>
 - External systems stay read-only. No Slack posts, no Jira mutations, no Grafana writes, no build retriggers.
 - MUST save the investigation artifact at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md` before stopping.
-- MUST gate the final conclusion on counterpart peer review.
+- MUST gate the final conclusion on peer review per `../shared/peer-review-governance.md`: counterpart review via `peer-review.sh` is preferred; the strict local fallback may satisfy the gate when the counterpart CLI is missing, out of tokens, rate-limited, timed out, crashed, or returned an unparseable verdict, in which case `Counterpart coverage: degraded` must be recorded.
 - MUST NOT implement code edits. If a fix is warranted, tell the user to invoke `lhc-ralplan` next.
 - State confidence explicitly (low/medium/high) and name the evidence that would change it.
 - Use at least two surfaces before concluding — a single-surface conclusion is weak.
 - MUST classify the symptom/root cause using `../shared/bug-fix-taxonomy.md`; labels before root-cause proof are hypotheses, not conclusions.
+- MUST apply `../shared/confidence-escalation-policy.md`: `medium` or `low` confidence is allowed only after the relevant investigation surfaces were exhausted or the blocked surfaces are recorded.
 </Execution_Policy>
 
 ## Workflow
@@ -96,7 +98,12 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
    Use `hypothesis:<label>` until two or more surfaces corroborate the defect shape. Escalate security-critical, data-loss, money-impacting, privacy, authorization, concurrency, distributed, migration, and data-integrity labels as high-risk plan inputs when a fix is warranted.
 
-7. **Peer review the conclusion** — use the background-bash pattern (see `../shared/peer-review-governance.md`); investigation reviews typically take 60-180s:
+7. **Confidence gate** — before assigning `Confidence`, apply the investigation ladder from `../shared/confidence-escalation-policy.md`:
+   - For `high`, require at least two correlated surfaces and no unresolved material contradiction.
+   - If only one surface supports the conclusion, keep the root cause as `hypothesis` and do not report high confidence.
+   - For `medium` or `low`, add an Exhaustion Ledger naming every attempted surface, blocked tool, empty query, contradiction, and the next evidence that would raise confidence.
+
+8. **Peer review the conclusion** — use the background-bash pattern (see `../shared/peer-review-governance.md`); investigation reviews typically take 60-180s:
    ```
    Bash(
      command: "sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode investigation --cwd \"$PWD\" --prompt-file <investigation-summary-path>",
@@ -106,16 +113,19 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    → poll BashOutput until "## Verdict" appears.
    ```
 
-8. **Save the artifact** at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md`. Required sections: timeline (UTC), evidence per surface with links/request IDs, correlation across surfaces, root-cause hypothesis with confidence, bug classification, owner, peer-review verdict, residual gaps.
+   If the counterpart CLI is missing, out of tokens, rate-limited, timed out, crashes before a verdict, or returns an unparseable verdict, use the strict local fallback route defined in `../shared/peer-review-governance.md` and record `Review route: strict-local-fallback`, `Counterpart coverage: degraded`, and `Counterpart failure: <missing cli|token limit|rate limit|timeout|crash|unparseable verdict>`.
+   If strict local fallback also cannot run, record `Verdict: degraded`, `Review route: degraded-none`, `Counterpart coverage: degraded`, and the exact `Counterpart failure`.
 
-9. **Append to notepad** (use the helper — never hand-format)
+9. **Save the artifact** at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md`. Required sections: timeline (UTC), evidence per surface with links/request IDs, correlation across surfaces, root-cause hypothesis with confidence, confidence Evidence Coverage, Exhaustion Ledger, Confidence Blockers, Next Evidence That Would Raise Confidence, bug classification, owner, peer-review verdict, Review route, Counterpart coverage, Counterpart failure when applicable, residual gaps.
+
+10. **Append to notepad** (use the helper — never hand-format)
    ```bash
    node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow investigate --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<artifact-path>" --kv verdict="<approved|approved-with-changes|rejected|degraded>" --kv conf="<low|medium|high>" --kv bug_labels="<labels|hypothesis:label>"
    ```
 
-10. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+11. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
    ```
    LHC HANDOFF
    - Completed: investigate
@@ -145,8 +155,10 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - [ ] Evidence gathered from at least two of root-cause / grafana / grafana-datasource / devex
 - [ ] Artifact saved under `~/.lhc/artifacts/`
 - [ ] Confidence stated explicitly with the evidence that would change it
+- [ ] Confidence policy applied; `medium` or `low` includes an Exhaustion Ledger and next evidence
 - [ ] Bug labels, severity, origin, defect surface, fix strategy, and verification implications recorded as evidence-backed conclusion or hypothesis
 - [ ] Peer-review verdict recorded
+- [ ] Review route, Counterpart coverage, and Counterpart failure recorded when applicable
 - [ ] No external system was written to
 - [ ] No source file was modified
 </Final_Checklist>

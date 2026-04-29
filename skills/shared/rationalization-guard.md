@@ -12,6 +12,7 @@ When you catch yourself forming one of the thoughts on the left, you are rationa
 | "Only one surface is actually relevant here." | Possibly true. Label the conclusion `hypothesis` and say so. `root cause` is two-surface only. |
 | "The user said 'just fix it' — that's authorization." | "Just fix it" does not authorize external writes. Explicit writes require naming the write. |
 | "I can synthesize the investigation without correlating surfaces." | You can synthesize. The artifact is still weak. Correlate or downgrade the confidence label. |
+| "This feels medium confidence; say medium and move on." | Exhaust the relevant evidence ladder first. Lower confidence is valid only after blocked or thin source families are recorded in the artifact. |
 | "The readiness check is slow and will probably pass — skip it." | Readiness is cheap. Skipping it is how you end up with a plan that relies on a broken MCP. |
 | "If I refuse this, the user will be frustrated." | Frustration is cheaper than a bad conclusion stamped "approved." Refuse cleanly and offer the compliant path. |
 | "It's the same as last time — I'll reuse the artifact." | Reuse the structure, not the evidence. Evidence is timestamped. |

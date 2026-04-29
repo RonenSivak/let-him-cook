@@ -31,7 +31,7 @@ Hierarchy:
   - no Slack posts
   - no Grafana mutations
   - no DevEx write-side actions (no build retriggers without explicit opt-in)
-- Counterpart peer review is mandatory for plans, diffs, production investigations, and incident conclusions. Route via `scripts/peer-review.sh`.
+- Counterpart peer review is mandatory for plans, diffs, production investigations, and incident conclusions. Route via `scripts/peer-review.sh`; if the counterpart CLI is missing, token/quota-limited, rate-limited, timed out, crashed, or returned an unparseable verdict, use the separate-context strict fallback and record degraded counterpart coverage.
 - Never self-approve in the same context. The producing agent does not sign off on its own output.
 - Runtime state belongs under `~/.lhc/`. Every workflow artifact is saved before stopping.
 - Readiness first: blocked readiness hard-stops unless the user opts into degraded mode in the same turn.
@@ -61,6 +61,7 @@ Generic roles:
 - `debugger`
 - `executor`
 - `verifier`
+- `strict-peer-reviewer` — Claude strict read-only local fallback when counterpart peer review cannot run; Codex uses native `code-reviewer` seeded with `prompts/strict-peer-reviewer.md`
 - `plugin-structure-reviewer` — plugin manifests, catalogs, hooks, host compatibility, and runtime safety
 - `skill-authoring-reviewer` — skill triggers, workflows, progressive disclosure, and evaluation coverage
 
@@ -71,7 +72,7 @@ Wix-native specialists:
 - `repo-cartographer` — octocode for wix-private discovery and PR archaeology
 - `framework-standards-reviewer` — Wix tooling conventions
 
-Coverage gaps (intentionally not wired as roles — handled by `lhc-review` + counterpart model instead): security-reviewer, test-engineer, writer, explore.
+Coverage gaps (intentionally not wired as roles — handled by `lhc-review` + counterpart model or strict fallback instead): security-reviewer, test-engineer, writer, explore.
 </role_catalog>
 
 <skill_catalog>
@@ -102,7 +103,7 @@ If three iterations of the same fix have failed: stop. Question the plan. Do not
 </verification>
 
 <anti_patterns>
-- **Self-approval.** "I already reviewed it mentally" is not peer review. Route to the counterpart.
+- **Self-approval.** "I already reviewed it mentally" is not peer review. Route to the counterpart, or to the strict fallback only when counterpart review failed for an explicit missing-cli, token/quota, rate-limit, timeout, crash, or unparseable-verdict reason.
 - **Silent degraded mode.** Missing MCPs cannot be papered over with plausible-sounding output. Name the gap or stop.
 - **Polite-stop reporting.** Reporting "approved" before the artifact is saved and the review is recorded.
 - **Inline plan invention.** `lhc-ralph` without a plan file is forbidden. Run `lhc-ralplan` first.
@@ -131,7 +132,7 @@ sh "$CODEX_PLUGIN_ROOT"/scripts/peer-review.sh --leader codex --mode <mode> --pr
 
 Inside Claude Code, the same script routes to Codex. Modes: `code-review`, `plan`, `investigation`, `conclusion`, `analysis`.
 
-If neither counterpart CLI is installed, the verdict is `degraded`. Save the artifact anyway and state the missing coverage explicitly.
+If counterpart review cannot run because the opposite CLI is missing, token/quota-limited, rate-limited, timed out, crashed, or returned an unparseable verdict, run the strict fallback in a separate context and record `counterpart_coverage=degraded`. If that fallback also cannot run, the verdict is `degraded`. Save the artifact anyway and state the missing coverage explicitly.
 </peer_review_routing>
 
 <commit_protocol>

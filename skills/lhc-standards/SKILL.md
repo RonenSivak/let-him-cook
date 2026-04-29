@@ -26,6 +26,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/coding-standards-policy.md`
 - `../shared/read-only-governance.md`
 - `../shared/readiness-and-degraded-mode.md`
+- `../shared/confidence-escalation-policy.md`
 - `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
@@ -54,7 +55,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - MUST cite file:line evidence for every repo-convention claim and URL/path evidence for every ecosystem claim.
 - MUST apply weights exactly as defined in `coding-standards-policy.md`. If a needed category is missing from the policy, flag it in the brief and use a conservative 50:50 tiebreaker.
 - If the change is cross-cutting (touches multiple packages with divergent conventions), produce a brief per package OR a single brief with per-package sections — do not average the conventions.
-- The brief's confidence rating depends on evidence breadth: `high` when repo detection has ≥10 signal files AND the ecosystem consult returned authoritative docs; `medium` when one side is thin; `low` when both are thin (warn the user and suggest `lhc-research` as a prerequisite).
+- The brief's confidence rating follows `../shared/confidence-escalation-policy.md`: `high` when repo detection has enough signal files for the touched area (default target 10, or all relevant files/configs exhausted for small/narrow scopes) AND the ecosystem consult returned authoritative docs; `medium` when one side remains thin after exhaustion; `low` when both are thin after exhaustion (warn the user and suggest `lhc-research` as a prerequisite).
 </Execution_Policy>
 
 ## Workflow
@@ -92,7 +93,12 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - Apply the weight; record the ruling.
    - If override rules trigger (security, a11y, deprecated-pattern, new-file-existing-dir, new-dir, same-file-being-modified, refactor-plan), annotate which override applied.
 
-7. **Synthesize the brief** at `~/.lhc/artifacts/standards-<slug>-<UTC-ISO>.md`. Use this structure:
+7. **Confidence gate** — before assigning `Confidence`, apply the standards ladder from `../shared/confidence-escalation-policy.md`:
+   - For `high`, record authoritative ecosystem guidance and enough repo evidence to represent the touched area. If fewer than 10 signal files exist, say that the relevant file/config universe was exhausted.
+   - For `medium` or `low`, add an Exhaustion Ledger naming the nearby files, configs, commits, docs, and ecosystem sources attempted, plus the next evidence that would raise confidence.
+   - Do not emit lower confidence until nearby-file sampling, repo config, recent commits, and ecosystem/internal-docs lookup have been attempted or blocked.
+
+8. **Synthesize the brief** at `~/.lhc/artifacts/standards-<slug>-<UTC-ISO>.md`. Use this structure:
 
    ```markdown
    # Standards Brief: <task slug>
@@ -145,16 +151,32 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
    ## Confidence
    high | medium | low — with the evidence count that justifies it.
+
+   ## Evidence Coverage
+   - Required source families: ...
+   - Consulted source families: ...
+   - Independent cross-check: ...
+
+   ## Exhaustion Ledger
+   - Attempted: ...
+     Result: ...
+     Follow-up: ...
+
+   ## Confidence Blockers
+   - none | ...
+
+   ## Next Evidence That Would Raise Confidence
+   - ...
    ```
 
-8. **Append to notepad**
+9. **Append to notepad**
    ```bash
    node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/write-notepad.js \
      --workflow standards --slug "<slug>" --cwd "$PWD" \
      --kv artifact="<brief-path>" --kv conf="<low|medium|high>"
    ```
 
-9. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
+10. **Print the handoff block and STOP** (format defined in `../shared/handoff-protocol.md`):
    ```
    LHC HANDOFF
    - Completed: standards
@@ -177,6 +199,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - [ ] Overrides (security, a11y, deprecated-pattern, new-file, new-dir, same-file, refactor-plan) are explicitly flagged where they fire
 - [ ] Non-negotiables listed separately from weighted rulings
 - [ ] Confidence rating justified by evidence count
+- [ ] Confidence policy applied; `medium` or `low` includes an Exhaustion Ledger and next evidence
 - [ ] Notepad entry appended
 - [ ] No source file in the repo was modified
 </Final_Checklist>

@@ -15,6 +15,7 @@ Every entry is a single line with tab-separated fields, prefixed by a dash:
 - `slug` — short kebab-case identifier for the task (`auth-token-refresh`, `rollout-42`)
 - `cwd` — current working directory at invocation
 - `key=value` pairs — any of: `plan=<path>`, `artifact=<path>`, `verdict=<approved|approved-with-changes|rejected|degraded>`, `classification=<code|flaky-test|release|ownership|infra>`, `conf=<low|medium|high>`, `bug_labels=<comma-separated-labels|unknown|hypothesis:label>`
+- `conf=<low|medium|high>` is only the compact ledger value. The saved artifact must carry the Evidence Coverage, Exhaustion Ledger, Confidence Blockers, and Next Evidence fields from `confidence-escalation-policy.md` when confidence is `medium` or `low`.
 
 Example:
 

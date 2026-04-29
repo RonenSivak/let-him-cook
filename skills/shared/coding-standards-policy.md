@@ -99,7 +99,7 @@ If you find yourself arguing about any of the above while holding the standards 
 7. **Non-negotiables** (security, a11y, Wix SDK usage — listed separately)
 8. **Per-file guidance** (when the plan names files, give per-file rules)
 9. **Migration flags** (deprecated-repo-pattern callouts)
-10. **Confidence** (`high | medium | low`) based on how much evidence backs the brief
+10. **Confidence** (`high | medium | low`) based on how much evidence backs the brief. Apply `confidence-escalation-policy.md`; `medium` or `low` requires an Exhaustion Ledger and the next evidence that would raise confidence.
 
 Executor reads sections 4-8. Code-reviewer reads sections 5-9. The brief is a contract between the plan and the reviewer; neither rewrites it.
 
