@@ -1,0 +1,7 @@
+{
+  "name": "investigate conclusion with peer-review verdict (terminal)",
+  "input_handoff_text": "LHC HANDOFF\n- Completed: investigate\n- Slug: payments-503-rca\n- Cwd: /Users/ronen/src/payments\n- Artifact: ~/.lhc/artifacts/investigate-payments-503-rca-2026-04-21T09-15-30Z.md\n- Bug labels: deployment_release_bug\n- Severity: blocking\n- Origin: regression\n- Defect surface: backend/domain\n- Fix strategy: logic change\n- Confidence: high\n- Verdict: approved\n",
+  "expected_completed": "investigate",
+  "expected_keys": ["Completed", "Slug", "Cwd", "Artifact", "Bug labels", "Severity", "Origin", "Defect surface", "Fix strategy", "Confidence", "Verdict"],
+  "expected_pass_to_next_skill_keys": []
+}

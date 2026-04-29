@@ -1,0 +1,7 @@
+{
+  "name": "ralplan -> ralph (canonical happy path)",
+  "input_handoff_text": "LHC HANDOFF\n- Completed: ralplan\n- Slug: auth-token-refresh\n- Cwd: /Users/ronen/src/identity-service\n- Artifact: ~/.lhc/plans/ralplan-auth-token-refresh-2026-04-20T14-23-05Z.md\n- Standards brief: ~/.lhc/artifacts/standards-auth-token-refresh-2026-04-20T14-23-05Z.md\n- Verdict: approved\n- Next skill: let-him-cook:lhc-ralph\n- Pass to next skill:\n    plan=~/.lhc/plans/ralplan-auth-token-refresh-2026-04-20T14-23-05Z.md\n    standards-brief=~/.lhc/artifacts/standards-auth-token-refresh-2026-04-20T14-23-05Z.md\n",
+  "expected_completed": "ralplan",
+  "expected_keys": ["Completed", "Slug", "Cwd", "Artifact", "Verdict", "Next skill"],
+  "expected_pass_to_next_skill_keys": ["plan", "standards-brief"]
+}

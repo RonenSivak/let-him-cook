@@ -44,5 +44,6 @@ If you find yourself reaching for one of the above, use the alternative in the r
 
 - Use subagents for bounded parallel work within the current session.
 - Use counterpart-model peer review (`peer-review.sh`) for the final sign-off pass. If the counterpart is unavailable, use `strict-peer-reviewer` as the read-only separate-context fallback and record degraded counterpart coverage. Never self-approve.
+- All peer-reviewer surfaces (`strict-peer-reviewer`, `plugin-structure-reviewer`, `skill-authoring-reviewer`, and counterpart `code-reviewer` invocations) MUST read `skills/shared/review-attack-surface.md` before issuing a verdict — it catalogs reviewer-side failure modes (model-pleasing approval, reviewer fatigue past stage 3, summary inflation, reward hacking, duplicate-issue overlap, CLA gaps) and the counter-rules that defeat them.
 - External write access stays disabled unless the user explicitly authorizes the specific write.
 - The coordinating agent never spawns lanes that spawn lanes. Fan-out is flat.

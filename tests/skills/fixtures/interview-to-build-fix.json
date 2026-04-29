@@ -1,0 +1,7 @@
+{
+  "name": "interview -> build-fix (classification with context clues)",
+  "input_handoff_text": "LHC HANDOFF\n- Completed: interview\n- Cwd: /Users/ronen/src/payments\n- Classification: build-fix\n- Readiness: ready\n- Context clues: PR #84523 build failing, devex link mentioned\n- Next skill: let-him-cook:lhc-build-fix\n- Pass to next skill:\n    cwd=/Users/ronen/src/payments\n    context-clues=PR #84523 build failing\n",
+  "expected_completed": "interview",
+  "expected_keys": ["Completed", "Cwd", "Classification", "Readiness", "Context clues", "Next skill"],
+  "expected_pass_to_next_skill_keys": ["cwd", "context-clues"]
+}

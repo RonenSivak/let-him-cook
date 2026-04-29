@@ -50,6 +50,8 @@ These override the default host-agent posture for the duration of any LHC workfl
 
 Auto-trigger is a convenience; explicit invocation is the contract.
 
+**When the request is ambiguous, start with `lhc-interview`** — it classifies the request and names the downstream skill via the handoff block, instead of relying on the host to guess across the full skill catalog. JIT-routing through interview keeps the working context small (one classification, one named next-skill) rather than loading every skill description as a candidate trigger. Evidence: Shopify Sidekick post-mortem (2025-08-26) on tool-count thresholds; r/claude Oct 2025 survey on auto-trigger unreliability; Anthropic 2025-09-29 "Effective context engineering" on JIT retrieval.
+
 ## Routing cheatsheet
 
 Match the user's request to the skill before doing anything else:

@@ -93,6 +93,18 @@ Use `node scripts/install-codex-plugin.js --dry-run` to inspect the changes firs
 
 If `~/.codex/plugins/let-him-cook` already exists as a separate checkout, move it aside or keep updating that checkout directly before switching to the symlink installer.
 
+### Codex env-var setup (equivalent of Claude `userConfig`)
+
+The Claude manifest declares a `userConfig` block so Claude Code prompts you for the LHC env vars at plugin enable. **Codex does not document an equivalent primitive yet**, so on the Codex side these env vars must be set manually in `~/.codex/config.toml` or your shell environment. Set whichever ones you need:
+
+```toml
+# ~/.codex/config.toml — under [env] or [plugins."let-him-cook@ronensi-local".env]
+MCP_S_TOKEN     = "..."   # Wix MCP gateway token (covers devex/grafana/root-cause/docs-schema/jira/slack)
+OCTOCODE_TOKEN  = "..."   # GitHub token for octocode MCP (repo discovery, PR archaeology)
+```
+
+Both sides resolve `${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}` for the plugin root, so any script that reads these env vars works on both hosts. Track upstream Codex docs for `userConfig` parity; once OpenAI documents the field, this README section becomes redundant and the same block can ship in `.codex-plugin/plugin.json`.
+
 ### Verify
 
 After install:

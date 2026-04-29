@@ -553,3 +553,193 @@ test('strict local peer-review fallback is wired for counterpart failures', () =
     assert.match(content, /unparseable verdict/, `${file} must mention unparseable verdict fallback`);
   }
 });
+
+test('package.json declares zero runtime dependencies (zero-deps contract)', () => {
+  const pkgPath = path.join(repoRoot, 'package.json');
+  assert.ok(fs.existsSync(pkgPath), 'package.json must exist at repo root');
+
+  const pkg = JSON.parse(read('package.json'));
+  const deps = pkg.dependencies || {};
+  assert.equal(
+    Object.keys(deps).length,
+    0,
+    `package.json must declare zero runtime dependencies; got: ${Object.keys(deps).join(', ')}`,
+  );
+});
+
+test('Claude monitors manifest is wired and self-consistent (B1)', () => {
+  const manifestPath = path.join(repoRoot, 'monitors/monitors.json');
+  assert.ok(fs.existsSync(manifestPath), 'monitors/monitors.json must exist');
+
+  const monitors = JSON.parse(read('monitors/monitors.json'));
+  assert.ok(Array.isArray(monitors.monitors), 'monitors.monitors must be an array');
+  assert.ok(monitors.monitors.length >= 1, 'must declare at least one monitor');
+
+  for (const monitor of monitors.monitors) {
+    for (const field of ['name', 'description', 'trigger']) {
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(monitor, field),
+        `monitor missing "${field}": ${JSON.stringify(monitor)}`,
+      );
+    }
+  }
+
+  const claudeManifest = JSON.parse(read('.claude-plugin/plugin.json'));
+  assert.ok(
+    Object.prototype.hasOwnProperty.call(claudeManifest, 'monitors'),
+    'Claude plugin.json must declare a "monitors" field pointing at the monitors directory',
+  );
+});
+
+test('Claude manifest declares userConfig; Codex manifest does not (intentional parity gap)', () => {
+  const claudeManifest = JSON.parse(read('.claude-plugin/plugin.json'));
+  const codexManifest = JSON.parse(read('.codex-plugin/plugin.json'));
+
+  assert.ok(
+    Object.prototype.hasOwnProperty.call(claudeManifest, 'userConfig'),
+    'Claude manifest must declare userConfig per Anthropic plugins reference (B2)',
+  );
+  assert.equal(
+    typeof claudeManifest.userConfig,
+    'object',
+    'userConfig must be an object',
+  );
+
+  assert.ok(
+    !Object.prototype.hasOwnProperty.call(codexManifest, 'userConfig'),
+    'Codex manifest must NOT declare userConfig — Codex does not document this primitive yet (intentional parity gap, see README "Codex env-var setup")',
+  );
+
+  const requiredKeys = ['MCP_S_TOKEN', 'OCTOCODE_TOKEN'];
+  for (const key of requiredKeys) {
+    assert.ok(
+      Object.prototype.hasOwnProperty.call(claudeManifest.userConfig, key),
+      `Claude userConfig must declare "${key}"`,
+    );
+    assert.equal(
+      typeof claudeManifest.userConfig[key].description,
+      'string',
+      `userConfig.${key}.description must be a string`,
+    );
+  }
+
+  const readme = read('README.md');
+  assert.match(
+    readme,
+    /Codex env-var setup|Codex.*\.codex\/config\.toml/,
+    'README.md must document the Codex env-var workaround as the equivalent of userConfig',
+  );
+  for (const key of requiredKeys) {
+    assert.match(
+      readme,
+      new RegExp(key.replace(/_/g, '_')),
+      `README.md must mention ${key} so Codex users know which env vars to set`,
+    );
+  }
+});
+
+test('permissions.json validates against permissions.schema.json (capability ledger contract)', () => {
+  const dataRaw = read('permissions.json');
+  const schemaRaw = read('permissions.schema.json');
+  const data = JSON.parse(dataRaw);
+  const schema = JSON.parse(schemaRaw);
+
+  assert.equal(
+    data.$schema,
+    schema.$id,
+    'permissions.json $schema URL must equal permissions.schema.json $id',
+  );
+
+  const requiredTopLevel = ['defaults', 'rules', 'denied_mcp_tools', 'notes'];
+  for (const key of requiredTopLevel) {
+    assert.ok(
+      Object.prototype.hasOwnProperty.call(data, key),
+      `permissions.json must declare top-level "${key}"`,
+    );
+    assert.ok(
+      Object.prototype.hasOwnProperty.call(schema.properties || {}, key),
+      `permissions.schema.json must define properties["${key}"]`,
+    );
+  }
+
+  assert.ok(Array.isArray(data.rules), 'permissions.json rules must be an array');
+  for (const rule of data.rules) {
+    for (const field of ['id', 'description', 'match', 'effect']) {
+      assert.ok(
+        Object.prototype.hasOwnProperty.call(rule, field),
+        `every rule must declare "${field}" — offender: ${rule.id || JSON.stringify(rule)}`,
+      );
+    }
+  }
+
+  assert.ok(
+    Array.isArray(data.denied_mcp_tools),
+    'permissions.json must declare denied_mcp_tools as an array',
+  );
+  assert.ok(
+    data.denied_mcp_tools.length >= 15,
+    `denied_mcp_tools must list at least 15 entries; got ${data.denied_mcp_tools.length}`,
+  );
+  for (const entry of data.denied_mcp_tools) {
+    assert.equal(typeof entry.server, 'string', `denied entry missing string "server": ${JSON.stringify(entry)}`);
+    assert.equal(typeof entry.tool, 'string', `denied entry missing string "tool": ${JSON.stringify(entry)}`);
+  }
+
+  const expectedServers = ['jira', 'slack', 'grafana', 'devex'];
+  for (const server of expectedServers) {
+    assert.ok(
+      data.denied_mcp_tools.some(entry => entry.server === server),
+      `denied_mcp_tools must include at least one entry for server "${server}"`,
+    );
+  }
+
+  const govRules = read('skills/shared/read-only-governance.md');
+  assert.match(
+    govRules,
+    /denied_mcp_tools/,
+    'read-only-governance.md must reference denied_mcp_tools (capability ledger as data)',
+  );
+});
+
+test('strict-peer-reviewer surfaces require review-attack-surface reading', () => {
+  const reviewerFiles = [
+    'agents/strict-peer-reviewer.md',
+    'prompts/strict-peer-reviewer.md',
+    'agents/skill-authoring-reviewer.md',
+    'agents/plugin-structure-reviewer.md',
+  ];
+
+  for (const file of reviewerFiles) {
+    const content = read(file);
+    assert.match(
+      content,
+      /review-attack-surface\.md/,
+      `${file} must reference skills/shared/review-attack-surface.md as required reading`,
+    );
+  }
+
+  const attackSurface = read('skills/shared/review-attack-surface.md');
+  const expectedFailureModes = [
+    /model-pleasing approval/i,
+    /reviewer fatigue/i,
+    /summary inflation/i,
+    /reward[- ]hack/i,
+    /duplicate[- ]issue overlap|duplicate[- ]PR overlap/i,
+    /CLA|licensing/i,
+  ];
+
+  for (const pattern of expectedFailureModes) {
+    assert.match(
+      attackSurface,
+      pattern,
+      `review-attack-surface.md must catalog failure mode matching ${pattern}`,
+    );
+  }
+
+  const catalog = read('skills/shared/subagent-catalog.md');
+  assert.match(
+    catalog,
+    /review-attack-surface\.md/,
+    'subagent-catalog.md must mention review-attack-surface.md so reviewers discover it',
+  );
+});

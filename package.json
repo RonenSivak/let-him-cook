@@ -1,0 +1,14 @@
+{
+  "name": "let-him-cook",
+  "version": "0.1.1",
+  "private": true,
+  "description": "LHC plugin: Wix internal engineering workflow layer for Claude Code and Codex CLI. Zero runtime dependencies — every script under scripts/ uses only the Node.js standard library.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "node --test tests/"
+  },
+  "dependencies": {}
+}

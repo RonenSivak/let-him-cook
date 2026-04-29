@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/wix-private/let-him-cook/main/permissions.schema.json",
+  "$schema": "./permissions.schema.json",
   "description": "LHC permission rules. Encodes the read-only external-systems governance as data, not doctrine. Patterned after Sourcegraph Amp's permission rule DSL. Read by agents; the runtime does not automatically enforce — these are the invariants skills must respect.",
   "defaults": {
     "internal_writes": "allow",
@@ -72,9 +72,32 @@
       "additional_deny": ["jira:*", "slack:*", "grafana:*", "devex:*", "github:write-pr"]
     }
   },
+  "denied_mcp_tools": [
+    { "server": "jira", "tool": "create-issue", "rationale": "external write; explicit per-turn user authorization required" },
+    { "server": "jira", "tool": "comment-on-issue", "rationale": "external write" },
+    { "server": "jira", "tool": "transition-issue", "rationale": "external write" },
+    { "server": "jira", "tool": "update-issue", "rationale": "external write" },
+    { "server": "jira", "tool": "delete-issue", "rationale": "external write" },
+    { "server": "slack", "tool": "post_message", "rationale": "external write" },
+    { "server": "slack", "tool": "reply_to_thread", "rationale": "external write" },
+    { "server": "slack", "tool": "schedule_message", "rationale": "external write" },
+    { "server": "slack", "tool": "react", "rationale": "external write" },
+    { "server": "slack", "tool": "update_message", "rationale": "external write" },
+    { "server": "grafana", "tool": "create-dashboard", "rationale": "external write; mutates shared monitoring surface" },
+    { "server": "grafana", "tool": "update-dashboard", "rationale": "external write" },
+    { "server": "grafana", "tool": "delete-dashboard", "rationale": "external write" },
+    { "server": "grafana", "tool": "silence-alert", "rationale": "external write; suppresses production signals" },
+    { "server": "grafana", "tool": "ack-alert", "rationale": "external write" },
+    { "server": "devex", "tool": "retrigger-build", "rationale": "external write; consumes CI capacity" },
+    { "server": "devex", "tool": "rollback-release", "rationale": "external write; production state change" },
+    { "server": "devex", "tool": "promote-release", "rationale": "external write; production state change" },
+    { "server": "devex", "tool": "cancel-rollout", "rationale": "external write; production state change" },
+    { "server": "devex", "tool": "tag-release", "rationale": "external write" }
+  ],
   "notes": [
     "This file is authoritative documentation for skills. The runtime does not auto-enforce it — agents must read and respect it.",
     "If you are about to override a deny rule, say so out loud and quote the 'unless' clause the user satisfied.",
+    "denied_mcp_tools is agent-enforced documentation, mirroring the rules array. The runtime does not auto-block these calls; skills MUST refuse them unless the user named the specific write in the current turn (read-only-governance.md). The list is intentionally non-exhaustive — when in doubt, treat any tool name containing 'create', 'update', 'delete', 'post', 'transition', 'retrigger', 'rollback', 'promote', 'cancel', or 'tag' as denied unless explicitly listed otherwise.",
     "Evidence: Sourcegraph Amp permission-rule DSL (ampcode.com/manual/appendix), Cline requires_approval flag (docs.cline.bot), LHC read-only-governance.md."
   ]
 }

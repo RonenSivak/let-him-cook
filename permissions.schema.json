@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "./permissions.schema.json",
+  "title": "LHC Permissions Capability Ledger",
+  "description": "Schema for permissions.json — LHC's documentation-only capability ledger. The runtime does not auto-enforce these rules; agents and reviewers read them and must respect the encoded invariants. See skills/shared/read-only-governance.md for the agent-side enforcement contract.",
+  "type": "object",
+  "required": ["defaults", "rules", "denied_mcp_tools", "notes"],
+  "additionalProperties": true,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri-reference",
+      "description": "URI reference (absolute or relative) of this schema. Must equal $id below. Relative references resolve against permissions.json's own URI so editors can validate branch-locally before any merge to main."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the capability ledger's intent."
+    },
+    "defaults": {
+      "type": "object",
+      "required": ["internal_writes", "external_writes"],
+      "additionalProperties": false,
+      "properties": {
+        "internal_writes": {
+          "type": "string",
+          "enum": ["allow", "deny", "ask"],
+          "description": "Default policy for writes inside the working repo and ~/.lhc."
+        },
+        "external_writes": {
+          "type": "string",
+          "enum": ["allow", "deny", "ask"],
+          "description": "Default policy for writes to external systems (Jira, Slack, Grafana, DevEx, etc.)."
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "description": "Ordered list of permission rules. First-match wins by convention; agents apply them in order.",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "match", "effect"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable, kebab-case identifier for this rule. Used in audit trails."
+          },
+          "description": {
+            "type": "string",
+            "description": "Why the rule exists. Reviewer-facing prose."
+          },
+          "match": {
+            "type": "object",
+            "description": "Match predicate. At least one of the listed alternatives must be present.",
+            "properties": {
+              "tool": {
+                "type": "string",
+                "description": "Pipe-delimited tool name regex (e.g. \"Write|Edit\")."
+              },
+              "tool_family": {
+                "type": "string",
+                "description": "MCP family (e.g. \"jira\", \"slack\", \"grafana\", \"devex\")."
+              },
+              "operation": {
+                "type": "string",
+                "description": "Pipe-delimited operation regex (e.g. \"write|create|update|delete\")."
+              },
+              "path_prefix": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Path prefixes the rule applies to. \"$CWD\" expands to the working repo root, \"~/.lhc\" expands to the runtime root."
+              },
+              "safe_commands": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Whitelist of commands the rule applies to. Used for read-only Bash."
+              },
+              "command_regex": {
+                "type": "string",
+                "description": "Regex to match against the full Bash command line."
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [
+              { "required": ["tool"] },
+              { "required": ["tool_family"] },
+              { "required": ["operation"] },
+              { "required": ["path_prefix"] },
+              { "required": ["safe_commands"] },
+              { "required": ["command_regex"] }
+            ]
+          },
+          "effect": {
+            "type": "string",
+            "enum": ["allow", "deny", "ask"],
+            "description": "What the agent does when this rule matches."
+          },
+          "unless": {
+            "type": "string",
+            "description": "Free-form prose describing the explicit user-consent clause that overrides this rule. Agents must quote the satisfied 'unless' clause when proceeding."
+          }
+        }
+      }
+    },
+    "context_rules": {
+      "type": "object",
+      "description": "Rules that apply only in specific contexts (e.g. inside subagents). Each key is a context name; the value lists additional restrictions.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "additional_deny": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Patterns (server:tool or server:*) that the context further denies on top of inherited rules."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "denied_mcp_tools": {
+      "type": "array",
+      "description": "Explicit denylist of MCP server+tool pairs that are forbidden by default. Mirrors the prose denylist in skills/shared/read-only-governance.md and the per-skill SKILL.md files. Agent-enforced documentation; the runtime does not auto-block these calls.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["server", "tool"],
+        "additionalProperties": false,
+        "properties": {
+          "server": {
+            "type": "string",
+            "description": "MCP server identifier (e.g. \"jira\", \"slack\", \"grafana\", \"devex\")."
+          },
+          "tool": {
+            "type": "string",
+            "description": "MCP tool name (e.g. \"create-issue\", \"post_message\", \"silence-alert\")."
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Optional one-line rationale for why this tool is denied."
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Free-form notes about how this file is interpreted, what the runtime does and does not do, and how agents should override deny rules."
+    }
+  }
+}

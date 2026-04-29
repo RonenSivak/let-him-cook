@@ -11,6 +11,8 @@ Intake surface for broad or ambiguous Wix internal engineering requests. Classif
 <Iron_Law>
 NO IMPLEMENTATION INSIDE INTERVIEW. This skill classifies and routes. It never plans, researches, investigates, or edits files.
 
+INTERVIEW NAMES THE DOWNSTREAM SKILL VIA THE HANDOFF; IT NEVER INVOKES OTHER SKILLS. The user (or the host) takes the handoff and decides whether to invoke the named next skill. Auto-invoking another skill from inside interview defeats the JIT-routing purpose and is forbidden.
+
 ONE CLARIFYING QUESTION MAX. If you need more than one question to classify, the user's request is not actually LHC-shaped — say so and offer the plain Claude Code path.
 
 See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-guard.md` for the thoughts that lead around them.
@@ -29,8 +31,9 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 </Required_Reading>
 
 <Use_When>
-- The user's request is vague and could map to multiple workflows.
+- The user's request is vague, ambiguous, or unclear ("help with this", "what should I do", "I'm not sure where to start") and could map to multiple workflows.
 - You genuinely cannot tell whether to plan, investigate, research, or triage.
+- The user has not named a specific LHC skill but the request is clearly Wix engineering work.
 - The user explicitly says "interview" or "help me pick a workflow".
 </Use_When>
 

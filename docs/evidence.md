@@ -2,7 +2,7 @@
 
 Every non-trivial design choice in this plugin should be defensible from research or production evidence — not personal preference. This document maps each LHC design decision to its empirical source. If you want to add a new pattern to LHC, it should either appear here with a citation or gather citations before it ships.
 
-Last reviewed: 2026-04-29.
+Last reviewed: 2026-04-29 (§15 added).
 
 ---
 
@@ -184,6 +184,100 @@ Last reviewed: 2026-04-29.
 - **CRITIC ICLR 2024** ([iclr.cc](https://proceedings.iclr.cc/paper_files/paper/2024/hash/fef126561bbf9d4467dbb8d27334b8fe-Abstract-Conference.html)): external feedback and tool-grounded critique improve outputs; self-approval is not enough.
 - **Reflexion NeurIPS 2023** ([neurips.cc](https://proceedings.neurips.cc/paper_files/paper/2023/hash/1b44b878bb782e6954cd888628510e90-Abstract-Conference.html)): iterative feedback can improve later attempts when the feedback is captured and reused.
 - **CodePRM ACL Findings 2025** ([aclanthology.org](https://aclanthology.org/2025.findings-acl.428/)): generate-verify-refine with execution feedback is a useful pattern for code-generation quality control.
+
+---
+
+## 15. Updates landed since 2026-04-20
+
+These citations landed after the previous review pass and extend the evidence base for the LHC iron-laws and the recommendations tracked in the lhc-ultimate-plugin plan. Preprint-strength markers are preserved per the source brief (`~/.lhc/artifacts/research-lhc-ultimate-plugin-20260429T115449Z.md` §2).
+
+### 15.1. PreCompact / JIT retrieval / sub-agent isolation
+
+**Rule:** The session-start agreement-reinjection, just-in-time loading of shared docs, and bounded sub-agent returns under `~/.lhc/` are the canonical implementation of effective context engineering for long-running agents.
+
+**Evidence:**
+- **Anthropic — "Effective context engineering for AI agents"** (primary doc, 2025-09-29): structured note-taking, sub-agent isolated returns, JIT retrieval, and PreCompact reinjection are the recommended primitives. [https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+
+---
+
+### 15.2. Stable-prefix prompt caching for long-horizon agents
+
+**Rule:** LHC keeps `ENABLE_PROMPT_CACHING_1H=1` in `peer-review.sh` and orders prompts so iron-laws and reinjected agreements form the stable cached prefix; dynamic per-call evidence comes after the boundary.
+
+**Evidence:**
+- **arXiv 2601.06007 — "Don't Break the Cache: An Evaluation of Prompt Caching for Long-Horizon Agentic Tasks"** (preprint, Jan 2026): empirical 41-80% cost reduction and 6-31% TTFT gains; naive full-context caching can hurt latency on some models. Treat as preprint-strength until peer review confirms. [https://arxiv.org/abs/2601.06007](https://arxiv.org/abs/2601.06007)
+
+---
+
+### 15.3. Socio-technical PR-rejection failure modes
+
+**Rule:** LHC's reviewer-attack-surface catalog tracks reviewer fatigue, duplicate-PR overlap, and CLA gaps as first-class failure modes alongside code correctness — see `skills/shared/review-attack-surface.md`.
+
+**Evidence:**
+- **arXiv 2601.15195 — "Where Do AI Coding Agents Fail? … Failed Agentic Pull Requests in GitHub"** (preprint / MSR'26, Jan 2026): the two large rejection buckets are reviewer-abandonment ~38% and duplicate-PR ~23%; CLA non-compliance is rare (≈<1% of annotated agentic-PR rejections). Treat as preprint-strength. [https://arxiv.org/abs/2601.15195](https://arxiv.org/abs/2601.15195)
+
+---
+
+### 15.4. Multi-turn underspecified-conversation degradation
+
+**Rule:** LHC's interview-then-consolidated-plan pattern and the three-iterations-then-stop guard exist precisely because LLMs lose ground in underspecified multi-turn dialogues.
+
+**Evidence:**
+- **arXiv 2505.06120 — "LLMs Get Lost In Multi-Turn Conversation"** (preprint, May 2025): ~39% degradation moving from single-turn fully-specified to underspecified multi-turn. Treat as preprint-strength. [https://arxiv.org/abs/2505.06120](https://arxiv.org/abs/2505.06120)
+
+---
+
+### 15.5. Multilingual repo-issue benchmark (TS/JS coverage)
+
+**Rule:** LHC's evidence base must extend beyond Python-biased SWE-bench Verified, since Wix's primary stack is TypeScript/JavaScript.
+
+**Evidence:**
+- **Multi-SWE-bench** (preprint, arXiv 2504.02605, 2025): multilingual repo-issue resolving benchmark; relevant for Wix's TS/JS-heavy stack. Treat as preprint-strength. [https://arxiv.org/abs/2504.02605](https://arxiv.org/abs/2504.02605)
+
+---
+
+### 15.6. Contamination-aware fresh-task evaluation
+
+**Rule:** LHC's "fresh evidence not remembered evidence" iron-law is reinforced by methodologies that defeat contamination via temporal splits and multi-run variance.
+
+**Evidence:**
+- **SWE-rebench** (NeurIPS'25 D&B / arXiv 2505.20411, 2025): contamination-aware fresh-task pipeline for SWE evals; argues some headline SWE-bench Verified gains are inflated by contamination. Treat as preprint-strength until conference proceedings publish. [OpenReview](https://openreview.net/forum?id=nMpJoVmRy1) · [arXiv](https://arxiv.org/abs/2505.20411)
+
+---
+
+### 15.7. Hard terminal workflow benchmark for CLI-first agents
+
+**Rule:** LHC's CLI-first surface (peer-review.sh, runtime scripts, hooks) should track hard-terminal benchmarks so progress on real-shell tasks is visible, not just SWE-bench.
+
+**Evidence:**
+- **Terminal-Bench 2.0** (preprint / ICLR'26 poster): 89 hard terminal workflows; frontier agents <65%. Treat as preprint-strength until ICLR proceedings publish. [OpenReview](https://openreview.net/forum?id=a7Qa4CcHak)
+
+---
+
+### 15.8. Reliability as model + harness + tools + environment
+
+**Rule:** LHC's multi-layer governance story (read-only defaults, peer review, runtime persistence, classification taxonomies) maps to the same four-axis reliability framing Anthropic publishes.
+
+**Evidence:**
+- **Anthropic — "Trustworthy agents in practice"** (primary doc, 2026-04-09): frames reliability as model + harness + tools + environment; matches LHC's multi-layer governance story. [https://www.anthropic.com/research/trustworthy-agents](https://www.anthropic.com/research/trustworthy-agents)
+
+---
+
+### 15.9. Operational eval vocabulary and pass-rate semantics
+
+**Rule:** Future LHC eval-harness work uses tasks/trials/transcripts vocabulary, multi-grader design, and pass@k vs pass^k pass-rate semantics rather than ad-hoc metrics.
+
+**Evidence:**
+- **Anthropic — "Demystifying evals for AI agents"** (primary doc, 2026-01-09): operational tasks/trials/transcripts vocabulary, multi-grader design, pass@k vs pass^k. [https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)
+
+---
+
+### 15.10. OpenTelemetry GenAI semantic conventions (deferred)
+
+**Rule:** If LHC ever adds observability for token usage or peer-review latency, it should emit OTel GenAI agent/tool spans with the standardized cache-token attributes rather than inventing a private format. **Currently not adopted** — LHC runs locally per user, so cross-user telemetry has no audience and the egress surface is not worth the governance cost. Listed here so future contributors don't re-derive the standard if they decide to add it.
+
+**Evidence:**
+- **OpenTelemetry GenAI semantic conventions** (primary spec): standard agent/tool spans plus cache-token attributes (`gen_ai.usage.cache_read.input_tokens`, `cache_creation.input_tokens`). [https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-agent-spans/](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-agent-spans/)
 
 ---
 

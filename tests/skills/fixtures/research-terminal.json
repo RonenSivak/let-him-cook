@@ -1,0 +1,7 @@
+{
+  "name": "research terminal (no next skill)",
+  "input_handoff_text": "LHC HANDOFF\n- Completed: research\n- Slug: session-token-refresh-pattern\n- Cwd: /Users/ronen/src/identity-service\n- Artifact: ~/.lhc/artifacts/research-session-token-refresh-pattern-2026-04-20T12-00-00Z.md\n- Intent label: internal_best_practice\n- Answer format: recommendation\n- Confidence: high\n",
+  "expected_completed": "research",
+  "expected_keys": ["Completed", "Slug", "Cwd", "Artifact", "Intent label", "Answer format", "Confidence"],
+  "expected_pass_to_next_skill_keys": []
+}

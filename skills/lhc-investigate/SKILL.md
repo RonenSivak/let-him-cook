@@ -26,6 +26,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - `../shared/handoff-protocol.md`
 - `../shared/notepad-schema.md`
 - `../shared/wix-tool-surfaces.md`
+- `../shared/wix-context-graph.md`
 - `../shared/bug-fix-taxonomy.md`
 </Required_Reading>
 

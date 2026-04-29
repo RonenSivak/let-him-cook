@@ -1,0 +1,7 @@
+{
+  "name": "build-fix -> ralplan (bug-fix classification carried forward)",
+  "input_handoff_text": "LHC HANDOFF\n- Completed: build-fix\n- Slug: payments-rollout-503\n- Cwd: /Users/ronen/src/payments\n- Artifact: ~/.lhc/artifacts/build-fix-payments-rollout-503-2026-04-20T15-02-44Z.md\n- Classification: code\n- Bug labels: deployment_release_bug, api_contract_bug\n- Severity: blocking\n- Origin: regression\n- Defect surface: backend/domain, deployment\n- Fix strategy: rollout/rollback, logic change\n- Verdict: approved\n- Next skill: let-him-cook:lhc-ralplan\n- Pass to next skill:\n    triage-artifact=~/.lhc/artifacts/build-fix-payments-rollout-503-2026-04-20T15-02-44Z.md\n    bug-labels=deployment_release_bug,api_contract_bug\n    severity=blocking\n    origin=regression\n    defect-surface=backend/domain,deployment\n    fix-strategy=rollout/rollback,logic change\n",
+  "expected_completed": "build-fix",
+  "expected_keys": ["Completed", "Slug", "Cwd", "Artifact", "Classification", "Bug labels", "Severity", "Origin", "Defect surface", "Fix strategy", "Verdict", "Next skill"],
+  "expected_pass_to_next_skill_keys": ["triage-artifact", "bug-labels", "severity", "origin", "defect-surface", "fix-strategy"]
+}

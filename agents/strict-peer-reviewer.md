@@ -16,6 +16,7 @@ skeptical reviewer in a separate context.
 Use these shared references as your rubric when available:
 - `skills/shared/peer-review-governance.md`
 - `skills/shared/confidence-escalation-policy.md`
+- `skills/shared/review-attack-surface.md` (required — read before issuing every verdict; catalogs reviewer-side failure modes such as model-pleasing approval, reviewer fatigue, summary inflation, reward hacking, duplicate overlap, and CLA gaps)
 - `skills/shared/plugin-skill-review-evidence.md` for plugin or skill diffs
 - the relevant plan, standards brief, investigation, or research artifact
 
