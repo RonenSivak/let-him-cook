@@ -4,6 +4,8 @@ LHC is a **personal-local workflow plugin for Wix engineers** that runs on both 
 
 It is **not** a replacement for Wix MCP servers and **not** a write-enabled automation framework. It is a structured way to plan, investigate, research, triage, and review Wix engineering work with fewer footguns and a traceable artifact trail.
 
+> **Where to start:** [`QUICKSTART.md`](QUICKSTART.md) for install · [`CHEATSHEET.md`](CHEATSHEET.md) for the skill/command list · [`FAQ.md`](FAQ.md) for the "why".
+
 ---
 
 ## At a glance
@@ -44,42 +46,28 @@ LHC is a self-contained plugin directory. Install it once per host CLI. The plug
 
 ### Claude Code
 
-**Option A — local marketplace (recommended for internal use).**
+The repo is itself a Claude Code marketplace (`.claude-plugin/marketplace.json` declares the marketplace `let-him-cook-local` containing the plugin `let-him-cook`).
 
 ```bash
-# 1. Clone or place the plugin wherever you keep plugins.
-git clone https://github.com/RonenSivak/let-him-cook.git ~/plugins/let-him-cook
+# 1. Clone the plugin wherever you keep plugins.
+git clone https://github.com/RonenSivak/let-him-cook.git ~/let-him-cook
 
-# 2. Register your local plugins directory as a marketplace.
-claude /plugin marketplace add ~/plugins
+# 2. Register the repo as a marketplace.
+claude plugin marketplace add ~/let-him-cook
 
 # 3. Install the plugin.
-claude /plugin install let-him-cook@local
+claude plugin install let-him-cook@let-him-cook-local
 ```
 
-**Option B — direct symlink (fastest for development).**
-
-```bash
-mkdir -p ~/.claude/plugins
-ln -s "$(pwd)" ~/.claude/plugins/let-him-cook
-```
-
-**Option C — Anthropic plugin marketplace.** If LHC is published to the Wix-internal marketplace:
-
-```bash
-claude /plugin marketplace add wix-internal
-claude /plugin install let-him-cook@wix-internal
-```
-
-After any install method, restart Claude Code and run `/plugin list` to confirm `let-him-cook` is active.
+Restart Claude Code and run `claude plugin list` to confirm `let-him-cook@let-him-cook-local` is active.
 
 ### Codex
 
 As of Codex CLI `0.118.0`, plugin support is wired through the local marketplace manifest and `~/.codex/config.toml`; the old plugin-list CLI surface is gone. Use the installer in this repo:
 
 ```bash
-git clone https://github.com/RonenSivak/let-him-cook.git ~/plugins/let-him-cook
-cd ~/plugins/let-him-cook
+git clone https://github.com/RonenSivak/let-him-cook.git ~/let-him-cook
+cd ~/let-him-cook
 node scripts/install-codex-plugin.js
 ```
 
@@ -111,8 +99,8 @@ After install:
 
 ```bash
 # Claude Code
-claude /plugin list
-# Look for: let-him-cook  (active)
+claude plugin list
+# Look for: let-him-cook@let-him-cook-local  (enabled)
 
 # Codex registry state
 grep -nE 'let-him-cook@ronensi-local|let-him-cook' ~/.codex/config.toml ~/.agents/plugins/marketplace.json
@@ -323,6 +311,8 @@ See [`AGENTS.md`](AGENTS.md) for the Codex operating contract, [`CLAUDE.md`](CLA
 
 ## Troubleshooting
 
+> Most "why is it doing that?" questions are covered in [`FAQ.md`](FAQ.md). The entries below are the ones that come up during install or active use.
+
 **"Unknown workflow" from `check-readiness.js`.** The workflow name must be lowercase and defined in [`scripts/readiness-registry.json`](scripts/readiness-registry.json).
 
 **Peer review verdict is `degraded`.** Counterpart review and the strict local fallback both failed or could not run. Install both `claude` and `codex` on your `PATH`, check token/rate limits, and inspect the review artifact's `Counterpart failure` and `Review route` fields.
@@ -344,12 +334,16 @@ See [`AGENTS.md`](AGENTS.md) for the Codex operating contract, [`CLAUDE.md`](CLA
 LHC is personal-local by default. To pull new changes:
 
 ```bash
-cd ~/plugins/let-him-cook
+cd ~/let-him-cook
 git pull
-# Claude Code and Codex will pick up the new plugin contents on the next session restart
+
+# Codex (symlink install) — picks up changes immediately; restart the session.
+# Claude Code (cached install) — refresh the marketplace and update the plugin:
+claude plugin marketplace update let-him-cook-local
+claude plugin update let-him-cook
 ```
 
-If you installed LHC into Codex via the symlink installer, `git pull` updates the live plugin immediately. Re-run `node scripts/install-codex-plugin.js --dry-run` if you want to confirm the registry files still match the expected local-install shape.
+Re-run `node scripts/install-codex-plugin.js --dry-run` if you want to confirm the Codex registry files still match the expected local-install shape.
 
 When the plugin itself is updated, re-run `/lhc-status` to confirm your runtime still matches the schema (old `~/.lhc/state/` is forward-compatible).
 
