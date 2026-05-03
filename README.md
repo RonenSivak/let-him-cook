@@ -201,17 +201,3 @@ LHC's defaults are evidence-backed; every non-trivial choice is mapped to a cita
 - **Permissions as data.** Amp-style DSL in [`permissions.json`](permissions.json).
 
 Per-skill invariants: [`skills/shared/iron-laws.md`](skills/shared/iron-laws.md). The thoughts that lead around them: [`skills/shared/rationalization-guard.md`](skills/shared/rationalization-guard.md).
-
----
-
-## Contributing
-
-LHC is for Wix internal engineering. New patterns require an entry in [`docs/evidence.md`](docs/evidence.md) citing at least one of:
-
-- a replicated academic result (2+ independent papers or production systems)
-- a top-10 SWE-bench / TerminalBench / TAU-bench scaffold using the pattern
-- an Anthropic engineering post, Cognition/Augment/Aider post-mortem, or equivalent primary source
-
-The Codex side has its own operating contract in [`AGENTS.md`](AGENTS.md); the Claude side in [`CLAUDE.md`](CLAUDE.md).
-
----
