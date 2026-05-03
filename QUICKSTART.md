@@ -5,7 +5,7 @@ Install the `let-him-cook` plugin on Claude Code, Codex, or both. Each flow take
 ## Prerequisites
 
 - **Node.js 18+** (the Codex installer is a Node script).
-- **Claude Code 2.x** (`claude --version`) and/or **Codex CLI 0.118+** (`codex --version`).
+- **Claude Code 2.1+** (`claude --version`) and/or **Codex CLI 0.128+** (`codex --version`). Upgrade either with `npm install -g @anthropic-ai/claude-code@latest` / `npm install -g @openai/codex@latest`.
 - For peer review, the *other* CLI must also be on `PATH`. Missing counterpart → review verdicts downgrade to `degraded`; nothing hard-fails.
 
 ## 1. Clone the repo
@@ -38,7 +38,7 @@ Then start Claude Code and run `/lhc-status` — it bootstraps `~/.lhc/` and pri
 
 ## 3. Install on Codex
 
-Codex 0.118 wires plugins through `~/.agents/plugins/marketplace.json` and `~/.codex/config.toml`. Use the included installer; it symlinks the repo, writes the marketplace entry, and enables the plugin section.
+Codex (0.118+) wires plugins through `~/.agents/plugins/marketplace.json` and `~/.codex/config.toml`. Use the included installer; it symlinks the repo, writes the marketplace entry, and enables the plugin section.
 
 ```bash
 cd ~/let-him-cook

@@ -51,7 +51,7 @@ After install, restart the host CLI and run `/lhc-status` to confirm everything 
 ### Prerequisites
 
 - **Node.js 18+** (the install scripts and helpers are Node).
-- **Claude Code 2.x** and/or **Codex CLI 0.118+**. You can install one or both.
+- **Claude Code 2.1+** and/or **Codex CLI 0.128+**. You can install one or both. (`npm install -g @anthropic-ai/claude-code@latest @openai/codex@latest` upgrades both.)
 - For peer review, *both* `claude` and `codex` should be on `PATH`. If only one is, review verdicts come back as `degraded` — the workflow still completes, but you lose the most valuable check.
 - Optional but recommended MCPs (LHC tells you which ones a given skill needs):
   - **Wix internal** (via the `mcp-s` gateway): `devex`, `grafana`, `grafana-datasource`, `root-cause`, `docs-schema`, `jira`, `slack`.
