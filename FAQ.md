@@ -21,6 +21,9 @@ Yes, but you'll lose value. The Wix-native agents (`incident-investigator`, `bui
 ### Why two CLIs (Claude *and* Codex)?
 Peer review is the central quality gate, and the strongest version is "the *other* model reads what I produced." Inside Claude Code, `peer-review.sh` routes to Codex; inside Codex, it routes to Claude. If only one CLI is installed, review verdicts downgrade to `degraded` and the producing skill records the gap — nothing hard-fails, but you're losing the most valuable check.
 
+### Does Cursor count as a third host?
+Yes. The Cursor installer ([`scripts/install-cursor-plugin.js`](scripts/install-cursor-plugin.js)) wires the same skills + hooks into `~/.cursor/skills/` and `~/.cursor/hooks.json`. Cursor's hook events differ from Claude/Codex (`beforeSubmitPrompt`, `beforeShellExecution`, `stop`); the installer handles the mapping. There's no `PreCompact` equivalent on Cursor, so the working-agreements re-injection step is a no-op there. For peer review, Cursor still shells out to whichever counterpart CLI (`claude` or `codex`) is on `PATH`.
+
 ## Installing & updating
 
 ### Where should I clone the repo?
@@ -32,8 +35,11 @@ Claude Code disambiguates plugins by marketplace. The repo's `.claude-plugin/mar
 ### `git pull` updated the repo, but Claude Code still shows the old version. Why?
 Claude Code caches plugins under `~/.claude/plugins/cache/...` at install time. A `git pull` on the source repo does not update the cache. Run `claude plugin marketplace update let-him-cook-local` then `claude plugin update let-him-cook`. The Codex installer uses a symlink, so it picks up changes immediately on the next session.
 
-### The Codex installer says `already points to <other path>`. What now?
-You have a previous checkout symlinked into `~/.codex/plugins/let-him-cook`. Either keep using that checkout, or move it aside (`mv ~/.codex/plugins/let-him-cook ~/.codex/plugins/let-him-cook.bak`) and re-run the installer.
+### The Codex / Cursor installer says `already points to <other path>`. What now?
+You have a previous checkout symlinked into `~/.codex/plugins/let-him-cook` (or `~/.cursor/plugins/local/let-him-cook` for Cursor). Either keep using that checkout, or move it aside (`mv <path> <path>.bak`) and re-run the installer.
+
+### How do I cleanly remove the Cursor install?
+`node scripts/install-cursor-plugin.js --uninstall`. It removes only LHC's symlinks under `~/.cursor/skills/` and the LHC entries from `~/.cursor/hooks.json` (each LHC entry is tagged with `_origin: "lhc"` so the script can identify them). Any third-party hooks you had (e.g. Superset) are left untouched.
 
 ### How do I temporarily disable LHC for one session?
 `DISABLE_LHC=1 claude` (or `codex`). All hooks no-op and skills won't auto-inject. To disable specific hooks instead: `LHC_SKIP_HOOKS=precompact,stop`. See [`CHEATSHEET.md`](CHEATSHEET.md#kill-switches-env-vars) for the full list.

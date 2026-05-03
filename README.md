@@ -1,6 +1,6 @@
 # Let Him Cook (LHC)
 
-LHC is a workflow plugin for Wix engineers that runs inside **Claude Code** and **Codex**. Think of it as a layer of Wix-aware skills (planning, investigation, research, code review) that produce real, saved artifacts you can revisit — not just chat output.
+LHC is a workflow plugin for Wix engineers that runs inside **Claude Code**, **Codex**, and **Cursor**. Think of it as a layer of Wix-aware skills (planning, investigation, research, code review) that produce real, saved artifacts you can revisit — not just chat output.
 
 It runs locally, defaults to read-only against external systems (no surprise PR comments / Jira writes / Slack posts), and routes every important conclusion through the *other* model for peer review.
 
@@ -10,7 +10,7 @@ It runs locally, defaults to read-only against external systems (no surprise PR 
 
 ## What you get
 
-LHC adds a set of `/lhc-*` skills you can invoke inside Claude Code or Codex. Each one writes its result to a saved file under `~/.lhc/` so you can read it later, share it, or feed it to the next skill.
+LHC adds a set of `/lhc-*` skills you can invoke inside Claude Code, Codex, or Cursor. Each one writes its result to a saved file under `~/.lhc/` so you can read it later, share it, or feed it to the next skill.
 
 | Skill | What it's for |
 |-------|---------------|
@@ -37,13 +37,17 @@ Short version (full version + verification in [`QUICKSTART.md`](QUICKSTART.md)):
 
 ```bash
 git clone https://github.com/RonenSivak/let-him-cook.git ~/let-him-cook
+cd ~/let-him-cook
 
 # Claude Code
 claude plugin marketplace add ~/let-him-cook
 claude plugin install let-him-cook@let-him-cook-local
 
 # Codex
-cd ~/let-him-cook && node scripts/install-codex-plugin.js
+node scripts/install-codex-plugin.js
+
+# Cursor
+node scripts/install-cursor-plugin.js
 ```
 
 After install, restart the host CLI and run `/lhc-status` to confirm everything is wired up.
@@ -51,7 +55,7 @@ After install, restart the host CLI and run `/lhc-status` to confirm everything 
 ### Prerequisites
 
 - **Node.js 18+** (the install scripts and helpers are Node).
-- **Claude Code 2.1+** and/or **Codex CLI 0.128+**. You can install one or both. (`npm install -g @anthropic-ai/claude-code@latest @openai/codex@latest` upgrades both.)
+- **Claude Code 2.1+**, **Codex CLI 0.128+**, and/or **Cursor**. Install whichever ones you use. (`npm install -g @anthropic-ai/claude-code@latest @openai/codex@latest` upgrades the two CLIs.)
 - For peer review, *both* `claude` and `codex` should be on `PATH`. If only one is, review verdicts come back as `degraded` — the workflow still completes, but you lose the most valuable check.
 - Optional but recommended MCPs (LHC tells you which ones a given skill needs):
   - **Wix internal** (via the `mcp-s` gateway): `devex`, `grafana`, `grafana-datasource`, `root-cause`, `docs-schema`, `jira`, `slack`.
@@ -126,18 +130,18 @@ If both CLIs aren't installed, every workflow still completes — it just record
 
 ## Hooks
 
-Four hooks are auto-registered when you install the plugin. You don't need to do anything to enable them.
+Four hooks are auto-registered when you install the plugin (three on Cursor — see mapping below). You don't need to do anything to enable them.
 
-| Event | What it does |
-|-------|--------------|
-| `SessionStart` | Bootstraps `~/.lhc/` (creates folders, writes runtime state). Idempotent — safe on `/clear`, `/compact`, or session resume. |
-| `PreToolUse` | Makes sure `~/.lhc/` exists before any file/bash tool fires. Belt-and-suspenders to the SessionStart hook. |
-| `PreCompact` | Re-injects LHC's working agreements (read-only defaults, peer-review requirement, loop guard) so context compaction doesn't erase them. |
-| `Stop` | If a workflow exited with peer review still pending, prints a reminder. Silent otherwise. |
+| Event (Claude / Codex) | Cursor equivalent | What it does |
+| --- | --- | --- |
+| `SessionStart` | `beforeSubmitPrompt` | Bootstraps `~/.lhc/` (creates folders, writes runtime state). Idempotent — safe on `/clear`, `/compact`, or session resume. |
+| `PreToolUse` | `beforeShellExecution` | Makes sure `~/.lhc/` exists before any file/bash tool fires. Belt-and-suspenders to the SessionStart hook. |
+| `PreCompact` | *(no equivalent)* | Re-injects LHC's working agreements (read-only defaults, peer-review requirement, loop guard) so context compaction doesn't erase them. |
+| `Stop` | `stop` | If a workflow exited with peer review still pending, prints a reminder. Silent otherwise. |
 
 ### Disabling hooks
 
-Set environment variables when you need vanilla Claude Code or Codex:
+Set environment variables when you need a vanilla session:
 
 | Var | Effect |
 |-----|--------|

@@ -4,7 +4,7 @@ Single-page reference. Pair with [`README.md`](README.md) for the full contracts
 
 ## Skills
 
-Invoke as `/<name>` in Claude Code or Codex once the plugin is installed.
+Invoke as `/<name>` in Claude Code, Codex, or Cursor once the plugin is installed.
 
 | Skill | When to reach for it | Produces |
 |-------|----------------------|----------|
@@ -42,12 +42,14 @@ Reviewers (loaded by `lhc-review` for plugin/skill diffs): `plugin-structure-rev
 
 ## Hooks
 
-| Event | What it does |
-|-------|--------------|
-| `SessionStart` | Bootstraps `~/.lhc/` on new sessions, resumes, `/clear`, `/compact`. |
-| `PreToolUse` | Ensures `~/.lhc/` exists before any file/bash tool fires. |
-| `PreCompact` | Re-injects working agreements so compaction doesn't erase them. |
-| `Stop` | Reminds you if a workflow exited with peer review still pending. |
+Cursor uses different event names; mapping in the right column.
+
+| Event (Claude / Codex) | Cursor | What it does |
+| --- | --- | --- |
+| `SessionStart` | `beforeSubmitPrompt` | Bootstraps `~/.lhc/` on new sessions, resumes, `/clear`, `/compact`. |
+| `PreToolUse` | `beforeShellExecution` | Ensures `~/.lhc/` exists before any file/bash tool fires. |
+| `PreCompact` | *(none)* | Re-injects working agreements so compaction doesn't erase them. |
+| `Stop` | `stop` | Reminds you if a workflow exited with peer review still pending. |
 
 ## Kill switches (env vars)
 
@@ -108,6 +110,7 @@ Skip trailers for typo-only or formatting-only commits. Full schema: [`skills/sh
 |--------|---------|
 | [`scripts/check-readiness.js`](scripts/check-readiness.js) | Per-workflow MCP/CLI readiness probe. Each skill runs it on entry. |
 | [`scripts/install-codex-plugin.js`](scripts/install-codex-plugin.js) | Codex install/update; supports `--dry-run`. |
+| [`scripts/install-cursor-plugin.js`](scripts/install-cursor-plugin.js) | Cursor install/update; supports `--dry-run` and `--uninstall`. |
 | [`scripts/peer-review.sh`](scripts/peer-review.sh) | Routes to the counterpart CLI for review. |
 | [`scripts/write-notepad.js`](scripts/write-notepad.js) | Append a row to `~/.lhc/notepad.md`. |
 | [`scripts/write-artifact.js`](scripts/write-artifact.js) | Save a workflow artifact under `~/.lhc/artifacts/`. |
