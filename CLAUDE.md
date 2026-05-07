@@ -88,6 +88,7 @@ Preferred LHC surfaces (invoke via the `Skill` tool):
 - `lhc-build-fix` — classifies failing builds, CI, releases, rollouts, and related bug shape.
 - `lhc-research` — source-backed programmer research by intent: internal patterns, prior art, codebase understanding, tradeoffs, and recommendations.
 - `lhc-review` — counterpart peer-review gate; saves verdict.
+- `lhc-pr-review` — on-demand GitHub PR review; staged spec/quality/security passes, chat-only output (read-only, no posting), complements the CI-side `@wix/ai-code-reviewer`.
 </skill_catalog>
 
 <verification>

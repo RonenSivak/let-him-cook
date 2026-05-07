@@ -68,8 +68,11 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    | ralph | `lhc-ralph` | user has a saved plan and wants to implement |
    | team | `lhc-team` | task splits into independent parallel lanes |
    | review | `lhc-review` | final peer-review gate on a plan, diff, or conclusion |
+   | pr-review | `lhc-pr-review` | on-demand AI review of a specific GitHub PR or branch (preflight, second opinion beyond the CI bot, targeted deep-dive on security/spec/standards) |
 
-   Use `../shared/research-intent-taxonomy.md` to classify programmer research by intended post-research action. Do not route to `lhc-research` when the user already wants a code-changing plan (`lhc-ralplan`), live production RCA (`lhc-investigate`), build triage (`lhc-build-fix`), or final peer review (`lhc-review`).
+   Use `../shared/research-intent-taxonomy.md` to classify programmer research by intended post-research action. Do not route to `lhc-research` when the user already wants a code-changing plan (`lhc-ralplan`), live production RCA (`lhc-investigate`), build triage (`lhc-build-fix`), final peer review of a plan/investigation/conclusion (`lhc-review`), or AI review of a specific PR diff (`lhc-pr-review`).
+
+   Disambiguate `lhc-review` vs `lhc-pr-review`: `lhc-review` is the counterpart-model gate on an LHC artifact (plan, investigation, conclusion). `lhc-pr-review` is on-demand AI review of a specific GitHub PR or branch, chat-only output (does not post to the PR). If the user names a PR number / URL, says "review my PR / my branch / the diff", or asks for preflight feedback, route to `lhc-pr-review`. If the user asks for a second opinion on a saved plan/investigation/conclusion, route to `lhc-review`.
 
    ## Feature Type Classification
 

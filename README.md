@@ -23,9 +23,10 @@ LHC adds a set of `/lhc-*` skills you can invoke inside Claude Code, Codex, or C
 | `/lhc-investigate` | Production root-cause analysis across docs, dashboards, builds, and repos. |
 | `/lhc-build-fix` | Triages a red CI / failed release / rollout regression. |
 | `/lhc-research` | Source-backed answer to "what's the existing pattern for X?" or "tradeoffs between A and B?". |
-| `/lhc-review` | Peer-review gate. Other skills call it automatically; you can also run it standalone on a diff or plan. |
+| `/lhc-review` | Peer-review gate on a saved plan, investigation, or conclusion. Other skills call it automatically. |
+| `/lhc-pr-review` | On-demand AI review of a specific GitHub PR or branch — staged spec / quality / security / i18n-a11y / wix-standards passes. Chat-only (read-only — never posts to GitHub); complements the CI-side `@wix/ai-code-reviewer`. |
 
-The typical flow is: `/lhc-ralplan` → review the plan → `/lhc-ralph` → ship. For a bug or incident: `/lhc-investigate` or `/lhc-build-fix` first, then plan + execute if a code fix is needed.
+The typical flow is: `/lhc-ralplan` → review the plan → `/lhc-ralph` → `/lhc-pr-review` once the PR is up → ship. For a bug or incident: `/lhc-investigate` or `/lhc-build-fix` first, then plan + execute if a code fix is needed.
 
 See [`CHEATSHEET.md`](CHEATSHEET.md) for the full one-page reference.
 
@@ -39,7 +40,7 @@ Short version (full version + verification in [`QUICKSTART.md`](QUICKSTART.md)):
 git clone https://github.com/RonenSivak/let-him-cook.git ~/let-him-cook
 cd ~/let-him-cook
 
-# Claude Code
+# Claude Code (first-time install — see "First-time Claude Code install" below)
 claude plugin marketplace add ~/let-him-cook
 claude plugin install let-him-cook@let-him-cook-local
 
@@ -50,7 +51,58 @@ node scripts/install-codex-plugin.js
 node scripts/install-cursor-plugin.js
 ```
 
-After install, restart the host CLI and run `/lhc-status` to confirm everything is wired up.
+After install, **restart the host CLI** and run `/lhc-status` to confirm everything is wired up.
+
+### First-time Claude Code install
+
+Claude Code 2.1+ validates `plugin.json` strictly at install time. If you see a `failed to load` status, the manifest schema has drifted; this section documents the steps that work today (verified on Claude Code 2.1.114+).
+
+1. **Install the CLI** (skip if already installed):
+
+   ```bash
+   npm install -g @anthropic-ai/claude-code@latest
+   claude --version  # expect 2.1.114 or newer
+   ```
+
+2. **Add this repo as a local marketplace** (the path is the repo root — Claude reads `.claude-plugin/marketplace.json` from there):
+
+   ```bash
+   claude plugin marketplace add ~/let-him-cook
+   claude plugin marketplace list   # confirms `let-him-cook-local` appears
+   ```
+
+3. **Install the plugin from that marketplace**:
+
+   ```bash
+   claude plugin install let-him-cook@let-him-cook-local
+   ```
+
+4. **Verify the plugin loaded** — `claude plugin list` must show `Status: ✔ enabled` for `let-him-cook@let-him-cook-local`. If it shows `✘ failed to load`, copy the error and skip to **Troubleshooting** below.
+
+5. **Restart Claude Code.** Skills only register after a session restart. From then on, `/lhc-` slash commands work in any Claude Code session, in any working directory.
+
+6. **Set MCP credentials** (optional, but most workflows need at least `MCP_S_TOKEN`). Claude Code prompts for `MCP_S_TOKEN` and `OCTOCODE_TOKEN` at install time — both are marked sensitive in the manifest, so they go to the OS keychain. To add them later, re-run `claude plugin install let-him-cook@let-him-cook-local` and Claude will prompt again. You can also export them as env vars (matches the Codex setup below).
+
+7. **Sanity-check**:
+
+   ```bash
+   /lhc-status      # snapshot of ~/.lhc/
+   /lhc-interview   # asks one question and routes you to the right skill
+   ```
+
+If `claude plugin install` succeeded but `/lhc-*` commands aren't autocompleted, restart Claude Code one more time and run `claude plugin list` to confirm enablement.
+
+### Updating after a `git pull`
+
+```bash
+cd ~/let-him-cook
+git pull
+claude plugin marketplace update let-him-cook-local
+claude plugin update let-him-cook
+# Restart Claude Code so the new skills/hooks register.
+```
+
+Codex picks up symlink-installed updates on the next session restart; no marketplace refresh needed.
 
 ### Prerequisites
 
@@ -101,6 +153,7 @@ Every other skill writes a single Markdown file under `~/.lhc/artifacts/`, named
 | `build-fix-<topic>-<timestamp>.md` | `/lhc-build-fix` |
 | `research-<topic>-<timestamp>.md` | `/lhc-research` |
 | `review-<topic>-<timestamp>.md` | `/lhc-review` |
+| `pr-review-<topic>-<timestamp>.md` | `/lhc-pr-review` |
 
 Artifacts are your audit trail — you can paste a path into a Slack thread, attach it to a PR, or feed it to the next skill. There's no auto-rotation; delete old ones when you're done with them.
 
@@ -181,7 +234,11 @@ Then run `/lhc-status` to confirm the runtime is healthy. Old `~/.lhc/state/` is
 
 > Most "why is it doing that?" questions live in [`FAQ.md`](FAQ.md). Quick fixes below.
 
-**Hooks aren't firing.** Confirm `claude plugin list` shows `let-him-cook@let-him-cook-local` (Claude Code) or that `~/.codex/config.toml` has `[plugins."let-him-cook@ronensi-local"] enabled = true` (Codex). Then check for `DISABLE_LHC=1` or `LHC_SKIP_HOOKS` in your shell env.
+**Hooks aren't firing.** Confirm `claude plugin list` shows `let-him-cook@let-him-cook-local` with `Status: ✔ enabled` (Claude Code) or that `~/.codex/config.toml` has `[plugins."let-him-cook@ronensi-local"] enabled = true` (Codex). Then check for `DISABLE_LHC=1` or `LHC_SKIP_HOOKS` in your shell env.
+
+**Claude says `failed to load` with a manifest validation error.** Claude Code 2.1+ tightened its `plugin.json` schema. Pull the latest repo (`git pull`), then `claude plugin marketplace update let-him-cook-local && claude plugin install let-him-cook@let-him-cook-local`. If it still fails, copy the error — Anthropic's schema occasionally drifts and we update `.claude-plugin/plugin.json` and `monitors/monitors.json` to match.
+
+**`/lhc-pr-review` says "no PR found".** It auto-detects from your current branch via `gh pr view --json number`. Push your branch first, then re-run; or pass `--pr <number>` / `--base origin/main --head HEAD`. The skill is chat-only by design — it never posts on the PR.
 
 **Peer review came back `degraded`.** The counterpart CLI is missing. Install both `claude` and `codex` on your `PATH`.
 

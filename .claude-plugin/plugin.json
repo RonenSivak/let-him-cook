@@ -21,19 +21,23 @@
     "incident-response"
   ],
   "skills": "./skills",
-  "monitors": "./monitors",
+  "experimental": {
+    "monitors": "./monitors"
+  },
   "userConfig": {
     "MCP_S_TOKEN": {
       "type": "string",
-      "required": false,
+      "title": "Wix MCP gateway token (mcp-s)",
       "description": "Wix MCP gateway token (mcp-s). Required for the devex/grafana/root-cause/docs-schema/jira/slack MCP family. Skills run in degraded mode if unset and the readiness check surfaces the gap.",
-      "secret": true
+      "required": false,
+      "sensitive": true
     },
     "OCTOCODE_TOKEN": {
       "type": "string",
-      "required": false,
+      "title": "GitHub token for octocode MCP",
       "description": "GitHub token used by the octocode MCP for repo discovery and PR archaeology. Required for lhc-research and lhc-build-fix when the user expects PR-archaeology coverage.",
-      "secret": true
+      "required": false,
+      "sensitive": true
     }
   }
 }

@@ -572,11 +572,16 @@ test('Claude monitors manifest is wired and self-consistent (B1)', () => {
   assert.ok(fs.existsSync(manifestPath), 'monitors/monitors.json must exist');
 
   const monitors = JSON.parse(read('monitors/monitors.json'));
-  assert.ok(Array.isArray(monitors.monitors), 'monitors.monitors must be an array');
-  assert.ok(monitors.monitors.length >= 1, 'must declare at least one monitor');
+  assert.ok(Array.isArray(monitors), 'monitors.json must be a top-level array (Claude Code 2.1+ schema)');
 
-  for (const monitor of monitors.monitors) {
-    for (const field of ['name', 'description', 'trigger']) {
+  // Claude Code 2.1's monitors schema is still narrow — accepts name/description/command only,
+  // and rejects trigger/args/match/notify/enabled_by_default. The previous schema documented in
+  // this file's comment block predates that restriction. Until Anthropic publishes a stable
+  // schema for the documented monitor primitives (interval triggers, json-path-non-empty matches,
+  // notification payload), monitors.json ships as an empty array so the plugin loads cleanly.
+  // Each entry, when present, must minimally declare name + description.
+  for (const monitor of monitors) {
+    for (const field of ['name', 'description']) {
       assert.ok(
         Object.prototype.hasOwnProperty.call(monitor, field),
         `monitor missing "${field}": ${JSON.stringify(monitor)}`,
@@ -586,8 +591,8 @@ test('Claude monitors manifest is wired and self-consistent (B1)', () => {
 
   const claudeManifest = JSON.parse(read('.claude-plugin/plugin.json'));
   assert.ok(
-    Object.prototype.hasOwnProperty.call(claudeManifest, 'monitors'),
-    'Claude plugin.json must declare a "monitors" field pointing at the monitors directory',
+    claudeManifest.experimental && Object.prototype.hasOwnProperty.call(claudeManifest.experimental, 'monitors'),
+    'Claude plugin.json must declare an "experimental.monitors" field pointing at the monitors directory (Claude Code 2.1+ moved monitors under the experimental namespace)',
   );
 });
 

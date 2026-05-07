@@ -25,7 +25,7 @@
   "interface": {
     "displayName": "LHC",
     "shortDescription": "Let Him Cook: read-only Wix engineering workflows for Codex",
-    "longDescription": "Let Him Cook is a home-local Codex plugin for Wix engineering chores. It adds readiness checks, read-only governance, local runtime artifacts, and peer-reviewed workflows for build triage, investigations, research, and planning.",
+    "longDescription": "Let Him Cook is a home-local Codex plugin for Wix engineering chores. It adds readiness checks, read-only governance, local runtime artifacts, and peer-reviewed workflows for build triage, investigations, research, planning, and on-demand PR review. All output is rendered to chat; no external systems are written to.",
     "developerName": "Ronensi",
     "category": "Productivity",
     "capabilities": [

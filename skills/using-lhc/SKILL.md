@@ -18,7 +18,8 @@ User intent ───────> lhc-interview ──────> classifies 
                                                                ├─ lhc-investigate (prod RCA)
                                                                ├─ lhc-build-fix  (red build)
                                                                ├─ lhc-research   (how does X work at Wix)
-                                                               ├─ lhc-review     (peer-review gate)
+                                                               ├─ lhc-review     (peer-review gate on plans/diffs/conclusions)
+                                                               ├─ lhc-pr-review  (on-demand GitHub PR review)
                                                                └─ lhc-status     (what's in ~/.lhc)
 
 All of them persist under ~/.lhc/. Major conclusions gate on counterpart peer review, with a strict separate-context fallback only when the counterpart cannot run or cannot return a parseable verdict.
@@ -66,7 +67,8 @@ Match the user's request to the skill before doing anything else:
 | "why is my build red", "CI is failing", "rollout broke" | `lhc-build-fix` |
 | "what's going on in prod", "why is this failing", "RCA" | `lhc-investigate` |
 | "how does X work at Wix", "which service owns Y", "what prior art or source-backed recommendation should guide this" | `lhc-research` |
-| "review this", "second opinion", "peer review" | `lhc-review` |
+| "peer review this plan", "second opinion on a plan/investigation/conclusion" | `lhc-review` |
+| "review my PR", "review #1234", "preflight before push", "second opinion on this PR diff" | `lhc-pr-review` |
 | "what's in ~/.lhc", "lhc status" | `lhc-status` |
 | Anything ambiguous | `lhc-interview` (classifies and routes) |
 

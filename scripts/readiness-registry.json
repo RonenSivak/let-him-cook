@@ -92,6 +92,14 @@
         "codex",
         "claude"
       ]
+    },
+    "pr-review": {
+      "mcp": [],
+      "cli": [
+        "codex",
+        "claude",
+        "gh"
+      ]
     }
   }
 }
