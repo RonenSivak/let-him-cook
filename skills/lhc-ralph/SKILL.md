@@ -17,6 +17,10 @@ SAME FIX FAILS 3× = STOP. If the same step fails three times, the plan is wrong
 
 TESTS ARE ORACLES, NOT SUGGESTIONS. A passing test the agent wrote without first watching fail is not verification — it's confirmation bias. If reported pass rate exceeds 95% first-try on a non-trivial step, treat it as suspicious and re-verify against an independent reproduction.
 
+PROMPT-LEVEL PROMISE GATE BEFORE SUCCESS. After the verifier runs, the verifier MUST emit a `<promise>` XML block listing exactly what was verified — acceptance criteria checked, tests run with their pass/fail status, manual checks performed. The assistant then re-reads the diff and the verifier output and confirms the promise is factually accurate before declaring success. If any item in the promise is overstated, vague, or unverifiable, declare `step-blocked` instead of `verified-pass`. Borrowed from `anthropics/claude-plugins-official` ralph-loop. The XML marker is intentional: it forces the verifier to commit to a literal claim that cannot be quietly walked back.
+
+EXACTLY ONE RALPH SESSION PER REPO PER MOMENT. Before starting iteration, check `~/.lhc/state/sessions/<other-sid>/ralph.json` files for any session whose `cwd` matches the current `$PWD` AND whose `status` is `running`. If one exists, STOP and surface the collision — concurrent ralph sessions on the same repo race on file edits. The user resolves: stop the other session, or run elsewhere.
+
 See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-guard.md` for the thoughts that lead around them.
 </Iron_Law>
 
@@ -74,6 +78,20 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    node "${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}"/scripts/ensure-runtime.js >/dev/null
    ```
 
+3a. **Concurrent-session collision check** — before iterating, scan other session state files for an in-flight ralph on the same `$PWD`:
+   ```bash
+   for sid in ~/.lhc/state/sessions/*/ralph.json; do
+     [ -f "$sid" ] || continue
+     other_cwd=$(node -e "const f=require('$sid');console.log(f.cwd||'')")
+     other_status=$(node -e "const f=require('$sid');console.log(f.status||'')")
+     if [ "$other_cwd" = "$PWD" ] && [ "$other_status" = "running" ] && [ "$sid" != "$HOME/.lhc/state/sessions/$LHC_SESSION_ID/ralph.json" ]; then
+       echo "BLOCKED: another ralph session is in flight on this repo: $sid"
+       exit 1
+     fi
+   done
+   ```
+   If a collision is detected, STOP and surface the other session's path. The user decides whether to terminate the other session (rare — usually means a stuck terminal) or run elsewhere. Do not proceed; concurrent file edits race.
+
 4. **Execution loop** — for each step in the plan:
    - If the plan has a **Bug Fix Classification**, keep the bug labels, severity, origin, defect surface, and fix strategy in the step prompt. The failing test must reproduce the reported wrong behavior, not merely cover the edited function.
    - **Write the failing test first.** Create or identify the test that encodes the acceptance criterion. Run it. Confirm it fails for the *right* reason (not a setup error). If the test passes before implementation, the test is wrong — rewrite it. For bug fixes, record the expected vs actual behavior from the reproduction.
@@ -83,6 +101,46 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - Record `steps[n].attempts` and `steps[n].verification` in the session state.
 
 5. **Verify against the whole plan** — dispatch `Task(subagent_type="let-him-cook:verifier", …)` to gate each acceptance criterion against fresh evidence.
+
+5a. **Promise gate** — the verifier subagent MUST end its response with a `<promise>` block in this exact shape:
+
+   ```text
+   <promise>
+   acceptance_criteria_verified:
+     - criterion_1: <satisfied|partially|unmet> via <test path or command>
+     - criterion_2: <satisfied|partially|unmet> via <test path or command>
+   tests_run: <count>
+   tests_passing: <count>
+   tests_failing: <count>
+   manual_checks: <count and one-line description each, or "none">
+   regression_test_for_bug: <path or "n/a"> (required when the plan has a Bug Fix Classification)
+   confidence: high|medium|low
+   </promise>
+   ```
+
+   After the verifier returns, the coordinating agent re-reads the diff and the verifier's tool output and confirms each line of the promise is factually true:
+   - Every cited test path exists and the verifier's reported pass/fail status matches the actual run output.
+   - The `tests_passing + tests_failing` count equals `tests_run`.
+   - For bug fixes, `regression_test_for_bug` points at a real failing-then-passing test that reproduces the reported wrong behavior.
+   - No `acceptance_criteria_verified` entry is `unverifiable` or vague.
+
+   If any check fails, the step is marked `verifier-overstated` and the loop returns to fix-mode (counts toward the per-step retry cap). A verifier that overstates twice in a row triggers an architect review — the plan is likely wrong, not the implementation. The promise gate is borrowed from `anthropics/claude-plugins-official` ralph-loop; the XML marker is intentional because it forces the verifier to commit to a literal, parseable claim that cannot be quietly walked back.
+
+5b. **Simplification polish — orchestrator decides whether to run.** The orchestrator (NOT the user) evaluates the diff against the auto-trigger rules below; if any rule fires, dispatch `Task(subagent_type="let-him-cook:code-simplifier", prompt=<diff + standards-brief reference>)`. The agent emits `keep` / `consider` / `nit`-priority before/after blocks for clarity-only changes (nested ternaries, redundancy the diff introduced, misleading names, comments that restate the code). Behavior must be `preserved` for every suggestion; any suggestion that changes observable behavior is dropped, not applied.
+
+   **Auto-trigger rules** — run the simplifier when ANY of:
+   - source-file additions in the diff exceed 200 lines
+   - the diff introduces 3+ new functions / methods / classes
+   - the diff contains nested ternaries, dense one-liner functional chains, or comments that restate the code (detectable patterns)
+   - the plan classification flagged the change as touching readability-sensitive areas (e.g. shared library, monorepo public package)
+
+   **Skip when**: doc-only diff, config-only diff, generated-file-only diff, OR the user said "skip simplification" / "no polish pass" / equivalent in plain language in the same turn (the orchestrator records the override quote in the artifact).
+
+   Application policy:
+   - **`keep`-priority suggestions are NOT auto-applied.** They are surfaced in the execution artifact under a `## Simplification suggestions` section. The user decides whether to apply them.
+   - The artifact records the suggestion list verbatim so the user can `Edit` apply them manually without re-deriving.
+   - Suggestions do NOT count toward the per-step retry cap. They are post-correctness polish, not fix iterations.
+   - If the simplifier returns zero `keep`-priority suggestions, the section reads "no simplifications recommended" and the loop continues.
 
 6. **Peer review the final diff** — use the background-bash pattern (see `../shared/peer-review-governance.md`); diff reviews typically take 60-180s:
    ```
@@ -103,7 +161,20 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - files touched (paths)
    - failing-test / reproduction output observed before the fix for each bug-fix acceptance criterion
    - verification commands run + truncated output
+   - **verifier promise** verbatim (the `<promise>` block from step 5a)
+   - **promise verification result** — list each promise line and whether the coordinating agent confirmed it (`confirmed` / `overstated: <what was wrong>`)
+   - **simplification suggestions** (when step 5b ran) — list of `keep` / `consider` / `nit`-priority before/after blocks; "no simplifications recommended" when the simplifier returned zero entries; otherwise `Simplification stance: skipped (<auto-trigger reason or user override quote>)` capturing the orchestrator's decision
    - peer-review verdict, Review route, Counterpart coverage, and Counterpart failure when applicable
+   - **stop reason** — exactly one of:
+     - `verified-pass` — every step verified, peer-review approved.
+     - `verified-with-changes` — every step verified, peer-review returned `approved-with-changes`.
+     - `step-attempts-exhausted` — at least one step hit the 3-retry cap; loop stopped per Iron Law.
+     - `verifier-overstated` — promise gate failed twice for the same step; architect escalation triggered.
+     - `plan-blocker` — plan was missing a step needed for success; surfaced gap and stopped (per Execution_Policy).
+     - `peer-review-rejected` — counterpart or strict fallback returned `rejected`; not retried.
+     - `concurrent-session` — another ralph session was in flight on this repo (step 3a collision).
+     - `manual-cancel` — user aborted.
+     - `degraded-no-coverage` — verdict is degraded because peer-review and strict fallback both unavailable.
    - residual gaps
 
 8. **Append to notepad** (use the helper — never hand-format)
@@ -122,17 +193,21 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - Artifact: <execute-artifact-path>
    - Plan: <plan-path>
    - Verdict: <approved|approved-with-changes|rejected|degraded>
+   - Stop reason: <verified-pass|verified-with-changes|step-attempts-exhausted|verifier-overstated|plan-blocker|peer-review-rejected|concurrent-session|manual-cancel|degraded-no-coverage>
    ```
 
    No Next skill line — ralph is terminal. The user takes the diff from here (commit, PR, whatever).
 
 <Final_Checklist>
 - [ ] Plan file was read and used as the spec
+- [ ] Concurrent-session collision check ran; no in-flight ralph on this `$PWD` from another session
 - [ ] Every acceptance criterion has a corresponding test that was observed failing BEFORE implementation
 - [ ] For bug fixes, the failing test or executable reproduction matched the reported wrong behavior before the fix
 - [ ] Every acceptance criterion has a passing verification command (fresh run, not remembered)
+- [ ] Verifier emitted a `<promise>` block; every line was confirmed against fresh tool output before declaring success
 - [ ] No step exceeded 3 retries
 - [ ] Peer-review verdict is `approved` or `approved-with-changes` after fixes, with Review route, Counterpart coverage, and Counterpart failure recorded when applicable
+- [ ] Stop reason recorded in the artifact and the handoff block
 - [ ] Execution artifact saved under `~/.lhc/artifacts/`
 - [ ] Notepad entry appended
 - [ ] State file under `~/.lhc/state/sessions/<session-id>/ralph.json` marks completion

@@ -104,6 +104,30 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - If only one surface supports the conclusion, keep the root cause as `hypothesis` and do not report high confidence.
    - For `medium` or `low`, add an Exhaustion Ledger naming every attempted surface, blocked tool, empty query, contradiction, and the next evidence that would raise confidence.
 
+7a. **Per-finding self-check classification** — for each individual finding in the investigation (evidence point, contributing factor, derived inference), apply the same three-axis ordinal self-check used by `lhc-pr-review`:
+   - **anchor** — does the cited surface (request ID, dashboard panel, log line, build hash) point at the right evidence? `concrete` | `uncertain`
+   - **inference** — is the leap from the cited evidence to the claim sound, or does it skip a step? `concrete` | `uncertain`
+   - **corroboration** — is the same claim supported by an independent surface? `concrete` | `uncertain`
+
+   Aggregate self-check is the WORST of the three axes: `verified` (all concrete) / `plausible` (one uncertain) / `speculative` (two or three uncertain). Findings with `self_check: speculative` are demoted to "Open hypotheses worth probing" — they do NOT contribute to the root-cause conclusion. Borrowed from `lhc-pr-review`'s self-check classification because LLM investigators over-attribute single-surface evidence; ordinal categories with named definitions calibrate more reliably than a numeric confidence score.
+
+7b. **Adversarial alternative-hypothesis pass — orchestrator decides whether to run.** The orchestrator (NOT the user) evaluates the auto-trigger rules below; if any rule fires, dispatch a fresh `Task(subagent_type="let-him-cook:incident-investigator", prompt=<challenge-prompt>)` lane that ONLY tries to falsify the working conclusion:
+   - Given the same evidence, what alternative explanation fits the same surface signals?
+   - What evidence would the working conclusion predict that has NOT been observed yet?
+   - What surface was NOT consulted that would have differentiated alternatives?
+   - Is there a contradiction between two cited surfaces that the conclusion is silently smoothing over?
+
+   **Auto-trigger rules** — run the challenge lane when ANY of:
+   - bug labels include `data_corruption`, `security_bug`, `auth_bug`, `privacy_bug`, `money_loss_bug`, `concurrency_bug`, `distributed_system_bug`, `migration_bug`
+   - severity is `blocking` or `critical`
+   - the working conclusion is single-surface (one corroborating surface) but the orchestrator is about to assign `high` confidence — challenge is the cheapest way to surface what a second surface would have shown
+   - two cited surfaces partially contradict each other and the conclusion picked one without explaining why
+   - the incident has user-impact, money-impact, or privacy-impact in its symptom description
+
+   **User override (natural language only).** "Skip the alt-hypothesis pass" / "don't challenge" → orchestrator records the quote and skips. "Challenge this" / "what else could it be" → orchestrator forces the lane and records the quote. No CLI flag.
+
+   The challenge lane returns at most three counter-hypotheses, each with: surface signals it explains, surface signals the working conclusion explains better, and the differentiating evidence that would settle it. If a counter-hypothesis is `verified` or `plausible` (per 7a), the working conclusion is demoted from `root cause` to `leading hypothesis` and the artifact records both hypotheses side-by-side. Pattern borrowed from `openai/codex-plugin-cc`'s adversarial-review stance, applied to investigations rather than diffs.
+
 8. **Peer review the conclusion** — use the background-bash pattern (see `../shared/peer-review-governance.md`); investigation reviews typically take 60-180s:
    ```
    Bash(
@@ -117,7 +141,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    If the counterpart CLI is missing, out of tokens, rate-limited, timed out, crashes before a verdict, or returns an unparseable verdict, use the strict local fallback route defined in `../shared/peer-review-governance.md` and record `Review route: strict-local-fallback`, `Counterpart coverage: degraded`, and `Counterpart failure: <missing cli|token limit|rate limit|timeout|crash|unparseable verdict>`.
    If strict local fallback also cannot run, record `Verdict: degraded`, `Review route: degraded-none`, `Counterpart coverage: degraded`, and the exact `Counterpart failure`.
 
-9. **Save the artifact** at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md`. Required sections: timeline (UTC), evidence per surface with links/request IDs, correlation across surfaces, root-cause hypothesis with confidence, confidence Evidence Coverage, Exhaustion Ledger, Confidence Blockers, Next Evidence That Would Raise Confidence, bug classification, owner, peer-review verdict, Review route, Counterpart coverage, Counterpart failure when applicable, residual gaps.
+9. **Save the artifact** at `~/.lhc/artifacts/investigate-<slug>-<UTC-ISO>.md`. Required sections: timeline (UTC), evidence per surface with links/request IDs, **per-finding self-check classification** (anchor / inference / corroboration axes plus aggregate `verified` | `plausible` | `speculative`), correlation across surfaces, root-cause hypothesis with confidence, confidence Evidence Coverage, Exhaustion Ledger, Confidence Blockers, Next Evidence That Would Raise Confidence, bug classification, owner, **alternative hypotheses** (when the orchestrator ran the challenge lane — full counter-hypothesis blocks; otherwise `Challenge stance: skipped (<auto-trigger reason or user override>)` with the orchestrator's reasoning), peer-review verdict, Review route, Counterpart coverage, Counterpart failure when applicable, residual gaps.
 
 10. **Append to notepad** (use the helper — never hand-format)
    ```bash
@@ -157,7 +181,9 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - [ ] Artifact saved under `~/.lhc/artifacts/`
 - [ ] Confidence stated explicitly with the evidence that would change it
 - [ ] Confidence policy applied; `medium` or `low` includes an Exhaustion Ledger and next evidence
+- [ ] Each finding has a per-finding self-check classification (anchor / inference / corroboration); `speculative` findings are demoted to open hypotheses, not part of the conclusion
 - [ ] Bug labels, severity, origin, defect surface, fix strategy, and verification implications recorded as evidence-backed conclusion or hypothesis
+- [ ] Challenge stance recorded in the artifact (either ran with counter-hypotheses, or skipped with the orchestrator's reasoning); when the lane ran, every counter-hypothesis is side-by-side with the working conclusion
 - [ ] Peer-review verdict recorded
 - [ ] Review route, Counterpart coverage, and Counterpart failure recorded when applicable
 - [ ] No external system was written to

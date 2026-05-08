@@ -74,6 +74,44 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 3. **Route by leader** — after specialist pre-flight has passed or is not applicable, use the background-bash pattern (see `../shared/peer-review-governance.md`); reviews typically take 30-180s.
 
+   **Adversarial stance — orchestrator decides whether to apply.** The LLM (NOT the user) evaluates the rules below and either prepends the **Adversarial overlay** block to the prompt-file content before calling `peer-review.sh`, or runs the standard review. The decision and reasoning are recorded in the review artifact (`Review stance: adversarial (<reason>)` or `Review stance: standard`).
+
+   **Auto-trigger rules** — adversarial stance activates when ANY of:
+   - The reviewed artifact is a **plan** (`mode=plan`) and the plan's classification matches `lhc-ralplan`'s adversarial auto-triggers (auth, permissions, billing, privacy, governance, enterprise feature labels; high-severity bug labels; blocking/critical severity; money flows; data export/deletion; rollout-irreversible migrations; new abstraction or boundary; clarification gate fired; 8+ implementation steps; 5+ packages).
+   - The reviewed artifact is a **diff** (`mode=code-review`) and the diff matches `lhc-pr-review`'s adversarial auto-triggers (security paths, public API contract changes, config flag default changes, large diff without tests, "no behavior change" claim with substantive logic, attached high-risk plan).
+   - The reviewed artifact is an **investigation** (`mode=investigation`) whose conclusion claims `high` confidence on a single corroborating surface, OR whose challenge lane was skipped despite high-impact bug labels.
+   - The reviewed artifact is a **conclusion** (`mode=conclusion`) tied to a high-impact incident (user-impact, money-impact, privacy-impact, security-impact in the conclusion's framing).
+
+   **User override (natural language only).** "Review adversarially" / "challenge this" / "pressure-test it" → orchestrator forces adversarial stance and records the quote. "Standard review" / "no adversarial pass" / "just check it" → orchestrator forces standard and records the quote. No CLI flag.
+
+   ### Adversarial overlay (applied when the orchestrator activates adversarial stance)
+
+   When adversarial stance is active, the prompt-file passed to `peer-review.sh` is the artifact content with this block prepended verbatim:
+
+   ```text
+   Adversarial stance for artifact review:
+   You are reviewing this artifact as a skeptic, not a checker. Pressure-test
+   the design choices and conclusions, not just their internal consistency.
+
+   For each non-trivial choice or conclusion in the artifact, ask:
+   - Why this approach / explanation and not the obvious alternative? Is the
+     alternative cited and rejected, or silently skipped?
+   - What invariant or constraint makes this load-bearing? Is that invariant
+     actually true outside the cited evidence?
+   - What part of this will be the first thing rewritten / refuted in 6 months?
+   - What edge case or failure mode is the artifact confident about that has
+     no verification command, test, or independent corroborating surface?
+
+   Surface findings as [major] when the choice has a material downside the
+   artifact appears to have missed, [minor] when there is a defensible
+   alternative worth considering, [nit] when it is a genuine matter of taste.
+   Do NOT use [blocker] in adversarial mode unless the choice causes
+   incident-level harm — otherwise adversarial findings inflate severity past
+   usefulness.
+
+   Pattern borrowed from openai/codex-plugin-cc's adversarial-review command.
+   ```
+
    Inside Claude Code (default):
    ```
    Bash(
@@ -108,18 +146,46 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    The strict fallback may return only `approved`, `approved-with-changes`, or `rejected`. If the fallback cannot run, save `Verdict: degraded`, `Review route: degraded-none`, and the exact missing coverage.
    For `code-review` mode, the strict fallback must run as two distinct fallback passes with the same focused inputs as counterpart review:
    - **Fallback Stage 1 — Spec compliance.** Prompt with the plan's acceptance criteria + the diff + `prompts/strict-peer-reviewer.md`, and require criterion-by-criterion evidence.
-   - **Fallback Stage 2 — Code quality + standards compliance.** Prompt with the diff + standards brief + `prompts/strict-peer-reviewer.md`, and require correctness, minimality, tests, standards, security, and privacy findings.
+   - **Fallback Stage 2 — Code quality + standards compliance.** Prompt with the diff + standards brief + `prompts/strict-peer-reviewer.md` + the **Specialty lens checklist** above (silent-failure, type-design four-axis, test-purpose). Require findings labeled with the same severity tiers (`blocker` / `major` / `minor` / `nit`).
 
 4. **For `code-review` mode, run two stages** (one call each, scoped prompts):
    - **Stage 1 — Spec compliance.** Prompt the counterpart with: the plan's acceptance criteria + the diff + a checklist asking "for each criterion N, does the diff satisfy it? Cite file:line evidence. If unmet, flag." Record verdict.
-   - **Stage 2 — Code quality + standards compliance.** Prompt the counterpart with: the diff + the standards brief (`~/.lhc/artifacts/standards-<slug>-<UTC-ISO>.md`, if one exists) + a checklist asking "(a) correctness, minimality, test coverage against acceptance criteria; (b) adherence to the brief's Applied Rulings; (c) any violation of the brief's Non-negotiables (security, a11y, Wix SDK). Call out smells." Record verdict. If no standards brief exists and the change modifies source files, note this as a gap in the review artifact — it is a missed gate, not an automatic block.
+   - **Stage 2 — Code quality + standards compliance.** Prompt the counterpart with: the diff + the standards brief (`~/.lhc/artifacts/standards-<slug>-<UTC-ISO>.md`, if one exists) + the **Specialty lens checklist** below. Record verdict. If no standards brief exists and the change modifies source files, note this as a gap in the review artifact — it is a missed gate, not an automatic block.
    - The overall verdict is `approved` only if every stage is `approved`. If any stage is `approved-with-changes`, the overall verdict is `approved-with-changes`. If any stage is `rejected`, the overall verdict is `rejected`.
 
-   For non-diff modes (`plan`, `investigation`, `conclusion`, `analysis`) a single pass is sufficient.
+   ### Specialty lens checklist (Stage 2)
+
+   Borrowed from Anthropic's `pr-review-toolkit` (anthropics/claude-plugins-official). Each lens is a focused inspection lane the reviewer must walk explicitly. Defaults are zero-tolerance: any violation is at least `[major]` unless the standards brief explicitly relaxes the rule.
+
+   **(a) Correctness, minimality, idiomatic fit, test coverage against acceptance criteria.**
+
+   **(b) Adherence to the standards brief's Applied Rulings, and any violation of the brief's Non-negotiables (security, a11y, Wix SDK).**
+
+   **(c) Silent-failure lens.** Examine every `catch`, `try/except`, `.catch(...)`, `Promise.allSettled`, and fallback code path. For each:
+   - The exception type caught is specific (not bare `catch (e)` / `except:`) — bare catches require explicit justification or are flagged.
+   - Either log-with-context-and-rethrow, log-and-surface-to-user, or document why swallowing is correct here.
+   - If a fallback value is returned on error, the fallback is explicitly justified — silent fallbacks that hide failures from observability are blockers in production paths.
+   - Errors are not converted to `null`/`undefined`/empty arrays without a comment naming the design choice.
+
+   **(d) Type-design four-axis lens** (TypeScript / typed-language code). For each newly introduced or substantially modified type, evaluate:
+   - **Encapsulation** — does the type hide its invariants? `concrete` = invariants enforced through the type; `uncertain` = invariants live in convention only.
+   - **Invariant expression** — do the types express domain rules a reader can derive? `concrete` = rules visible in shape; `uncertain` = rules implicit.
+   - **Usefulness** — does the type help reason about the code, or only satisfy the compiler? `concrete` = compile-time misuse becomes obvious; `uncertain` = a `Record<string, any>` in a fancy hat.
+   - **Enforcement** — will the compiler actually catch misuse, or are casts / `as` / `any` smuggling around it? `concrete` = no escape hatches in the diff; `uncertain` = casts present without justification.
+
+   Findings: any axis classed `uncertain` is a `[minor]`; two or more `uncertain` axes is a `[major]`; an `as any` or unjustified cast at a domain boundary is `[major]` regardless.
+
+   **(e) Test-purpose lens.** For each test added or modified in the diff:
+   - The test must answer "what specific regression does this test prevent" — a one-line statement of the failure mode it would catch.
+   - Tests that just exercise existing behavior (without an oracle for *what* could regress) are flagged as `[minor]` — they shift over time and detect nothing.
+   - Tests that mock the system under test, or that assert on implementation detail rather than observable behavior, are flagged as `[major]` — they pass in test and fail in prod.
+   - Tests that test the mock instead of the code are `[blocker]` — they actively mislead.
+
+   For non-diff modes (`plan`, `investigation`, `conclusion`, `analysis`) a single pass is sufficient and the specialty lens checklist does not apply (it is diff-specific).
 
 5. **Capture and classify** the reviewer's output(s) into a verdict.
 
-6. **Save the review artifact** at `~/.lhc/artifacts/review-<slug>-<UTC-ISO>.md`. Include: input path, mode, leader, review route (`counterpart`, `strict-local-fallback`, or `degraded-none`), counterpart coverage, counterpart failure when applicable, per-stage verdicts (if two-stage), specialist reviewer verdicts (when step 2 ran), strict fallback verdict when applicable, overall verdict, key findings (verbatim from reviewer where possible), residual risks, explicit "missing coverage" line if degraded.
+6. **Save the review artifact** at `~/.lhc/artifacts/review-<slug>-<UTC-ISO>.md`. Include: input path, mode, leader, **review stance** (`standard` or `adversarial (<auto-trigger reason or user-override quote>)`), review route (`counterpart`, `strict-local-fallback`, or `degraded-none`), counterpart coverage, counterpart failure when applicable, per-stage verdicts (if two-stage), specialist reviewer verdicts (when step 2 ran), strict fallback verdict when applicable, overall verdict, key findings (verbatim from reviewer where possible), residual risks, explicit "missing coverage" line if degraded.
 
 7. **Append to notepad** (use the helper — never hand-format)
    ```bash
@@ -145,6 +211,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - [ ] Input artifact was NOT modified
 - [ ] For `code-review`: both spec-compliance and code-quality stages ran and have recorded verdicts
 - [ ] Verdict classified using the explicit aggregation rule from `../shared/peer-review-governance.md`: any stage `rejected` → overall `rejected`; else any stage `approved-with-changes` → overall `approved-with-changes`; else overall `approved`. Specialist pre-flight verdicts are aggregated the same way before the counterpart/fallback stage runs.
+- [ ] Review stance recorded (`standard` or `adversarial (<reason>)`); orchestrator's auto-trigger evaluation OR user-override quote captured
 - [ ] Review route recorded (`counterpart`, `strict-local-fallback`, or `degraded-none`)
 - [ ] Counterpart coverage recorded
 - [ ] Counterpart failure recorded when applicable

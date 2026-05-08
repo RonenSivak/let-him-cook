@@ -117,6 +117,36 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 4a. **Standards brief** — if the plan will modify source files (not docs/config only), invoke `Skill("let-him-cook:lhc-standards")` with the target files, feature area, feature labels from step 3a, and bug labels from step 3b when present. The brief will be saved at `~/.lhc/artifacts/standards-<slug>-<UTC-ISO>.md` and MUST be referenced from the plan's *Implementation steps* section. `lhc-ralph` reads the brief during execution; `lhc-review` reads it during review. Skip this step for doc-only or config-only plans.
 
+4b. **Clarification gate** — after evidence is gathered and before the plan is written, walk the **gate triggers** below. If any trigger fires, STOP, surface clarifying questions to the user via `AskUserQuestion`, and do NOT continue to step 5 until the user has answered (in this turn or a follow-up). Borrowed from `anthropics/claude-plugins-official` feature-dev — Phase 3 hard-blocks before design specifically because plans built on ambiguous inputs produce confident-looking but load-bearing-wrong artifacts that waste a peer-review cycle and an execution cycle.
+
+   **Gate triggers (any one is sufficient to block):**
+
+   1. **Classification is ambiguous** — feature labels split between two primary labels, or bug labels split between two primary buckets, AND the planning implications materially diverge (different acceptance criteria, different verification path). One example: "auth bug vs session-management bug" — the regression test is different.
+   2. **Acceptance criteria are not derivable from evidence** — the user request, the Jira ticket (when attached), and the gathered evidence do not yet pin down what "done" looks like for at least one substantial part of the change.
+   3. **Two materially different design directions were considered** in evidence-gathering and the choice changes the file scope, the test scope, or which standards rulings apply. Do NOT silently pick one.
+   4. **Required context is missing** — the user referred to something the agent could not locate (e.g. "do it like X service does it" but X service was not found in `repo-cartographer`'s output, or "match the new ADR" but no ADR was returned by `internal-docs-researcher`).
+   5. **External-write authorization is implied but not given** — the request reads like it expects writes to Jira / Slack / Grafana / GitHub but the user did not explicitly authorize a specific write in this turn. Ask which writes (if any) the plan should call out as required steps the user will perform after the plan is approved.
+
+   **Gate output (when triggered):**
+
+   Surface a numbered list of clarifying questions, each in the form:
+
+   ```
+   Q<N>. <one-sentence ambiguity statement, with the two or three options the user can pick from>
+         Why this matters: <how the answer changes the plan>
+         If unanswered: <what default would be applied — but the gate prefers answers, not defaults>
+   ```
+
+   Use `AskUserQuestion` to surface the top 1–4 questions interactively. Save the questions to a working file at `~/.lhc/state/sessions/<sid>/ralplan-clarify.md` so the gate can re-trigger across turns without losing context.
+
+   **Gate non-triggers (do NOT block):**
+
+   - The diff scope is small and entirely derivable from the user's one-line request.
+   - The classification is unambiguous and the evidence directly supports the acceptance criteria.
+   - The user already answered every gate question in the same turn (re-running the gate after the answer should pass).
+
+   **No fishing for ambiguity.** Do NOT invent questions to seem thorough. If every gate trigger is genuinely false, skip the gate and proceed. Three or fewer questions is the target; more than four means evidence-gathering was insufficient — go back to step 4 instead.
+
 5. **Write the plan file** at `~/.lhc/plans/ralplan-<slug>-<UTC-ISO>.md`. Required sections:
    - Title + one-paragraph goal
    - **Feature Type Classification** (when the request is a feature):
@@ -144,20 +174,65 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
    - Verification commands (copy-pasteable)
    - ADR block: Decision, Drivers, Alternatives considered, Why chosen, Consequences, Follow-ups
 
-6. **Peer review** — route the plan to the counterpart model. Use Claude Code's background-bash pattern (see `../shared/peer-review-governance.md`) because plan reviews typically take 60-180s:
+6. **Peer review** — route the plan to the counterpart model. Use Claude Code's background-bash pattern (see `../shared/peer-review-governance.md`) because plan reviews typically take 60-180s.
+
+   **Adversarial mode is decided by the orchestrator, not the user.** The LLM evaluates the auto-trigger rules below against the plan's classification and content, then either prepends the **Adversarial overlay for plans** block to a separate `<adversarial-prompt-path>` or runs the standard plan review. The orchestrator records the decision and reasoning in the artifact's Peer Review section (`Review stance: adversarial (<reason>)` or `Review stance: standard`).
+
+   **Auto-trigger rules** — adversarial mode activates when ANY of:
+   - feature labels include `auth`, `permissions`, `billing`, `privacy`, `governance`, `enterprise` (security/compliance plans)
+   - bug labels include `data_corruption`, `security_bug`, `auth_bug`, `privacy_bug`, `migration_bug`, `concurrency_bug`, `distributed_system_bug`
+   - severity is `blocking` or `critical`
+   - the plan touches money flows, user-data export/deletion, or rollout-irreversible migrations
+   - the plan introduces a new abstraction or boundary (new package, new service, new public API surface)
+   - the clarification gate fired in step 4b (ambiguity in the request usually means the chosen design is one of several reasonable readings — pressure-test it)
+   - the plan has 8+ implementation steps OR touches 5+ packages (large blast radius)
+
+   **User override (natural language only, no CLI flags).** If in the same turn the user explicitly says "skip the adversarial review", "don't pressure-test this", or equivalent, the orchestrator records `Review stance: standard (user override: <quote>)` and runs the standard review. If the user explicitly asks "review this adversarially" or "challenge the design", the orchestrator activates adversarial mode and records `Review stance: adversarial (user override: <quote>)`. No flags are exposed; intent is interpreted from natural language in the same turn.
+
    ```
    Bash(
-     command: "sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode plan --cwd \"$PWD\" --prompt-file <plan-path>",
+     command: "sh \"${CODEX_PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}\"/scripts/peer-review.sh --mode plan --cwd \"$PWD\" --prompt-file <plan-path-or-adversarial-prompt-path>",
      run_in_background: true,
      timeout: 600000
    )
    → then poll with BashOutput(bash_id) every 10-20s until the "## Verdict" section appears.
    ```
+
    Capture the `[peer-review] ... log=<path>` line from stderr; that's your recovery trail if BashOutput stops streaming.
    If counterpart review fails because the CLI is missing, out of tokens, rate-limited, timed out, crashed before a verdict, or returned an unparseable verdict, run the strict local fallback from `../shared/peer-review-governance.md` and record `Review route: strict-local-fallback`, `Counterpart coverage: degraded`, and `Counterpart failure: <missing cli|token limit|rate limit|timeout|crash|unparseable verdict>`.
    If strict local fallback also cannot run, record `Verdict: degraded`, `Review route: degraded-none`, `Counterpart coverage: degraded`, and the exact `Counterpart failure`.
    If rejected, revise and re-review up to 3 times. If still rejected, save the latest plan, record the verdict, and stop.
-   Append a final **Peer Review** section to the plan with verdict, Review route, Counterpart coverage, Counterpart failure when applicable, and key findings.
+   Append a final **Peer Review** section to the plan with verdict, Review route, Counterpart coverage, Counterpart failure when applicable, key findings, and **`Review stance: standard` or `Review stance: adversarial (<auto-trigger reason or user override quote>)`**.
+
+   ### Adversarial overlay for plans
+
+   When adversarial mode is active, the prompt-file passed to `peer-review.sh` is the plan content with this block prepended verbatim:
+
+   ```text
+   Adversarial stance for plan review:
+   You are reviewing this plan as a skeptic, not a checker. Pressure-test the
+   design choices, not just the spec coverage. For each non-trivial choice:
+   - Why this approach and not the obvious alternative? Is the alternative
+     cited in the ADR's "Alternatives considered" block, or silently skipped?
+   - What invariant or constraint makes this choice load-bearing? Is that
+     invariant actually true in the rest of the codebase the plan touches?
+   - Where does the plan add complexity that the acceptance criteria did not
+     require?
+   - What edge case or failure mode is the plan confident about that has no
+     verification command or test?
+   - Which acceptance criterion will be the first thing the executor cuts
+     when ralph hits the 3-retry cap?
+
+   Surface findings as [major] when the design choice has a material downside
+   the plan appears to have missed, [minor] when there is a defensible
+   alternative worth considering, and [nit] when it is a genuine matter of
+   taste. Do NOT use [blocker] in adversarial mode unless the design choice
+   causes incident-level harm — otherwise adversarial findings inflate
+   severity past usefulness.
+
+   Pattern borrowed from openai/codex-plugin-cc's adversarial-review command,
+   adapted to plans rather than diffs.
+   ```
 
 7. **Append to notepad** (use the helper — never hand-format)
    ```bash
@@ -201,6 +276,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 
 <Final_Checklist>
 - [ ] Plan file exists under `~/.lhc/plans/`
+- [ ] Clarification gate ran; either no triggers fired, or every triggered question was answered before the plan was written
 - [ ] Feature labels, audience, layers, routing rationale, and planning implications recorded when the request is a feature
 - [ ] Bug labels, severity, origin, defect surface, fix strategy, routing rationale, and verification implications recorded when the request is a bug fix
 - [ ] Bug-fix acceptance criteria include reproduction, expected vs actual behavior, and a regression oracle

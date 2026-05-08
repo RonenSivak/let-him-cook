@@ -13,7 +13,7 @@ NEVER WRITES TO GITHUB. The skill is chat-only. It does NOT post `pull_request_r
 
 NO SELF-APPROVAL ON THE REVIEW. The findings list is itself an artifact; route it through `peer-review.sh --mode analysis` before saving an `approved` verdict. If the counterpart cannot complete a parseable verdict, fall back per `../shared/peer-review-governance.md` and record `counterpart_coverage=degraded`.
 
-LOW-CONFIDENCE FINDINGS ARE DROPPED. Prompt-only LLM judges are well-documented to over-flag in real-world code review — the dominant complaint across deployed tools is noise, not missed defects (CodeRabbit / Greptile / Cursor BugBot all ship explicit suppression lanes; arXiv:2509.01494 SWR-Bench reports best-in-class precision in the 15–20% range without grounding). The prompt envelope below applies the Qodo confidence rule verbatim and a 0–10 self-reflection gate; the default cutoff drops findings scoring at-or-below `--min-self-score` (default `4`, tunable per invocation, calibration TODO recorded in the artifact).
+LOW-CONFIDENCE FINDINGS ARE DROPPED. Prompt-only LLM judges are well-documented to over-flag in real-world code review — the dominant complaint across deployed tools is noise, not missed defects (CodeRabbit / Greptile / Cursor BugBot all ship explicit suppression lanes; arXiv:2509.01494 SWR-Bench reports best-in-class precision in the 15–20% range without grounding). The prompt envelope below applies the Qodo confidence rule verbatim plus a three-class ordinal self-check (`verified` / `plausible` / `speculative`) — LLMs calibrate ordinal categories with named definitions far better than 0–100 numeric scores, where outputs cluster around round numbers and shift with prompt wording. The default cutoff drops findings whose self-check is `speculative`; tunable per invocation via `--min-self-check`.
 
 DEFER TO REPO TUNING. If `AGENTS.md` (Codex review guidelines), `CLAUDE.md`, `REVIEW.md`, or `.coderabbit.yaml` exists in the repo, treat it as the highest-priority instruction layer for this PR. Wix repos use `AGENTS.md` for Codex review tuning today; honoring it is non-negotiable.
 
@@ -57,7 +57,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 - MUST NOT call `gh pr review`, `gh pr comment`, `gh pr merge`, `gh pr close`, or any `gh api ... -X POST` against the reviews/comments endpoints. The skill is chat-only.
 - MUST save the review artifact at `~/.lhc/artifacts/pr-review-<slug>-<UTC-ISO>.md` before stopping.
 - MUST run a counterpart peer-review of the merged findings via `peer-review.sh --mode analysis` before claiming the review is `approved`.
-- MUST drop findings below the configured `--min-severity` (default `minor`), below the configured `--min-confidence` (default `medium`), and at-or-below `--min-self-score` (default `4`).
+- MUST drop findings below the configured `--min-severity` (default `minor`), below the configured `--min-confidence` (default `medium`), and below the configured `--min-self-check` (default `plausible`, i.e. drop `speculative`).
 - MUST honor repo-local tuning files (`AGENTS.md`, `CLAUDE.md`, `REVIEW.md`, `.coderabbit.yaml`) when present.
 - MUST skip draft PRs unless `--include-draft` was given in the same turn.
 - MUST skip bot-authored PRs (mirroring CI behavior) unless `--review-bots` was given.
@@ -75,7 +75,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 | `--plan <path>` | user; or auto-detect most-recent `~/.lhc/plans/ralplan-*.md` | optional |
 | `--min-severity blocker|major|minor|nit` | user | `minor` (drop nits before output) |
 | `--min-confidence high|medium|low` | user | `medium` (drop low before output) |
-| `--min-self-score <0-10>` | user | `4` (drop findings whose self-reflection score is at-or-below this) |
+| `--min-self-check verified\|plausible\|speculative` | user | `plausible` (drops `speculative`; ordinal categories calibrate better than 0–100 numeric scores) |
 | `--include-draft` | user | off |
 | `--review-bots` | user | off |
 | `--allow-large` | user | required when diff > 5000 added lines |
@@ -86,7 +86,7 @@ See `../shared/iron-laws.md` for all invariants and `../shared/rationalization-g
 The skill is **chat-only**. It renders TL;DR + walkthrough + per-finding block to the terminal and saves the same content to `~/.lhc/artifacts/pr-review-<slug>-<UTC-ISO>.md`. Each finding is printed as:
 
 ```text
-[<severity>][<category>] <file>:<line_start>-<line_end>  (confidence: <high|medium|low>, score: <0-10>)
+[<severity>][<category>] <file>:<line_start>-<line_end>  (confidence: <high|medium|low>, self-check: <verified|plausible|speculative>)
   Problem:    <one-sentence statement>
   Scenario:   <concrete trigger>
   Suggested:  <one-line fix or pointer to the suggestion block in the artifact>
@@ -138,11 +138,22 @@ If the user wants to share the review on GitHub, they copy the relevant section 
 
 9. **Stage dispatch (parallel)** — fan out independent subagent lanes via the host's Task tool. Each lane is a fresh context, gets only the inputs it needs, and returns a list of findings in the canonical schema (see "Finding schema" below).
 
-    **Auto-include rules** (run before dispatch, in this order):
+    **Auto-include rules — decided by the orchestrator, NOT the user** (run before dispatch, in this order):
     - If a plan was attached in step 6 OR a Jira ticket in step 7: auto-add `spec` to `--stages`.
-    - If any changed file matches `**/*.tsx`, `**/*.jsx`, `**/*.vue`, `**/*.svelte`, `**/*.html`, `**/*.css`, `**/*.scss`: auto-add `i18n-a11y` to `--stages` unless the user explicitly excluded it.
-    - If any changed file matches `**/wix.config.js`, `**/yoshi.config.*`, `**/fedops.config.*`, `**/bi-events/**`, `**/experiments/**`, or imports `@wix/yoshi`, `@wix/fedops-logger`, `@wix/wix-bi-tag`: auto-add `wix-standards` unless excluded.
+    - If any changed file matches `**/*.tsx`, `**/*.jsx`, `**/*.vue`, `**/*.svelte`, `**/*.html`, `**/*.css`, `**/*.scss`: auto-add `i18n-a11y` to `--stages` unless the user explicitly excluded it in plain language ("skip i18n review", "no a11y").
+    - If any changed file matches `**/wix.config.js`, `**/yoshi.config.*`, `**/fedops.config.*`, `**/bi-events/**`, `**/experiments/**`, or imports `@wix/yoshi`, `@wix/fedops-logger`, `@wix/wix-bi-tag`: auto-add `wix-standards` unless explicitly excluded.
+    - **simplify lane** auto-add when ANY of: (a) source-file additions exceed 200 lines, (b) the diff introduces 3+ new functions/methods/classes, (c) the diff contains nested ternaries, dense one-liner functional chains, or comments that restate the code (these are detectable patterns the orchestrator can grep for in the patch). Skip when the diff is doc-only / config-only / generated, or when the user explicitly said "skip simplification" / "no polish pass" in plain language in the same turn.
     - `quality` and `security` always run unless explicitly excluded.
+
+    **Adversarial stance — decided by the orchestrator, NOT the user.** Adversarial mode applies the **Adversarial overlay** block (below) to every dispatched stage's prompt envelope. The orchestrator activates adversarial mode when ANY of:
+    - The PR touches security-sensitive paths: `**/auth/**`, `**/permissions/**`, `**/csrf/**`, `**/session/**`, `**/billing/**`, `**/payment/**`, `**/iam/**`, `**/secrets/**`, or any file importing crypto / signing / token-mint primitives.
+    - The PR changes a public API contract (any TypeScript declaration file in `dist/`, `.d.ts` in `index`, OpenAPI/proto files, or exported function signatures in package entry points).
+    - The PR modifies a config flag default, a feature-flag rollout setting, or an experiment's targeting rule.
+    - The diff is large (>500 added lines) AND has no test additions.
+    - The PR description claims "no behavior change" but the diff has substantive logic changes (new conditionals, new function calls in production paths).
+    - A plan is attached and the plan has high-risk classifications (auth, billing, privacy, data-corruption, distributed-system, concurrency, migration).
+
+    **User override (natural language only).** If in the same turn the user explicitly says "review adversarially", "challenge this", "pressure-test the design" — adversarial mode is on. If they say "standard review", "no adversarial pass", "just check correctness" — adversarial mode is off. The orchestrator records the decision and reasoning in the artifact (`Review stance: adversarial (<auto-trigger reason | user override quote>)` or `Review stance: standard`).
 
     Stages (only the ones in `--stages` after auto-include run):
     - **spec** — `Task(subagent_type="let-him-cook:code-reviewer", prompt=<spec-prompt with plan + diff>)` — verifies acceptance criteria criterion-by-criterion. Stage 1 of the LHC two-stage code-review contract.
@@ -150,6 +161,7 @@ If the user wants to share the review on GitHub, they copy the relevant section 
     - **security** — `Task(subagent_type="let-him-cook:code-reviewer", prompt=<security-prompt with diff + Wix security non-negotiables>)` — CSRF/XSS/SSRF/SQLi/secrets, authz/authn, SSO cookie handling, prototype pollution, unsafe `eval`, regex DoS, supply-chain (new deps), and Wix-specific concerns: BI event PII leakage, fedops misuse, experiment flag leakage, panorama tags.
     - **i18n-a11y** (auto-included for UI changes) — RTL handling, missing `alt`, unlabeled controls, contrast, hardcoded strings where i18n is required, ARIA misuse.
     - **wix-standards** (auto-included for Wix tooling changes) — Yoshi config, fedops events, BI events, experiment flags, panorama tags, Wix SDK usage, monorepo build rules.
+    - **simplify** (auto-included by orchestrator decision; see auto-trigger rules below) — `Task(subagent_type="let-him-cook:code-simplifier", prompt=<simplify-prompt with diff>)` — clarity-focused before/after suggestions on the recently-modified code only. Read-only; emits before/after blocks, never applies edits. Output is rendered alongside review findings in the artifact and chat output as a separate `## Simplification suggestions` section. Suggestions whose `Behavior:` is anything other than `preserved` are dropped (they are findings, not simplifications).
 
     Pass each subagent the **prompt envelope** (below) with the appropriate stage-focus paragraph. Do NOT include the diff inline if it exceeds 50 KB — write it to `$LHC_TMP/pr-diff.patch` and pass the path.
 
@@ -158,7 +170,12 @@ If the user wants to share the review on GitHub, they copy the relevant section 
     - Deduplicate by `(file, line_start, line_end, category)` keeping the highest severity / highest confidence variant.
     - Drop findings with `severity` below `--min-severity`.
     - Drop findings with `confidence` below `--min-confidence`.
-    - **Self-reflection score** — for each surviving finding, run a single-shot subagent pass that scores the finding 0–10 on (a) "would this comment be addressed by a competent reviewer", (b) "is the suggested fix actually correct", (c) "is the file:line anchor right". Drop findings whose score is at-or-below `--min-self-score` (default `4`, tunable per invocation; the Qodo `suggestions_score_threshold` pattern). Calibration is a known TODO — record the cutoff used in the artifact so the threshold can be evaluated against subsequent human-reviewer outcomes.
+    - **Self-check classification** — for each surviving finding, run a single-shot subagent pass that classifies the finding into one of three ordinal categories on three axes: (a) anchor correctness — does the file:line point at the right code, (b) fix correctness — is the suggested change actually right, (c) evidence concreteness — is the trigger scenario specific enough that a competent reviewer would address it. The aggregate self-check is the WORST of the three axis-level checks:
+      - `verified` — all three axes are concrete and right.
+      - `plausible` — exactly one axis is uncertain; the other two are concrete.
+      - `speculative` — two or three axes are uncertain, OR any axis is contradicted by quick re-reading of the diff.
+
+      Drop findings whose self-check is below `--min-self-check` (default `plausible`, i.e. drop `speculative`). Ordinal classification with named categories is more reliable than a 0–100 score: LLMs cluster numeric outputs around round numbers (50, 70, 80) and shift with prompt wording, but they apply named categories with consistent definitions far more stably (commonly cited in calibration evaluations of LLM-as-judge). Record the per-axis classifications in the artifact so cutoff calibration can be evaluated against subsequent human-reviewer outcomes.
     - Order surviving findings by severity, then confidence, then file path.
 
 11. **Counterpart peer-review of the merged review** — required before `approved`:
@@ -183,13 +200,14 @@ If the user wants to share the review on GitHub, they copy the relevant section 
     - **Walkthrough** — bullet list of what changed and why
     - **Scoring** — review-effort 1–5; security-concerns: yes/no/specific
     - **Findings** — list in the canonical schema below, ordered by severity / confidence
-    - **Suppressed findings** — list of findings that were dropped (with reason: severity floor / confidence floor / self-reflection score) so the user can audit signal-to-noise
+    - **Simplification suggestions** (when `simplify` stage ran) — separate section, not folded into findings. Each suggestion as a before/after block. Source: `code-simplifier` agent.
+    - **Suppressed findings** — list of findings that were dropped (with reason: severity floor / confidence floor / self-check classification) so the user can audit signal-to-noise
     - **Peer review** — counterpart verdict, Review route, Counterpart coverage, Counterpart failure when applicable
 
 13. **Render output to chat** — print the TL;DR, walkthrough, scoring, and per-finding block to the terminal. Each finding rendered as:
 
     ```text
-    [<severity>][<category>] <file>:<line_start>-<line_end>  (confidence: <high|medium|low>, score: <0-10>)
+    [<severity>][<category>] <file>:<line_start>-<line_end>  (confidence: <high|medium|low>, self-check: <verified|plausible|speculative>)
       Problem:    <one-sentence statement>
       Scenario:   <concrete trigger>
       Suggested:  <one-line fix or pointer to suggestion block in artifact>
@@ -235,7 +253,11 @@ side:        RIGHT                       # RIGHT for new lines, LEFT for context
 severity:    blocker|major|minor|nit
 category:    bug|security|spec-drift|perf|maintainability|test|i18n-a11y|wix-standards
 confidence:  high|medium|low
-score:       0..10                       # self-reflection score
+self_check:  verified|plausible|speculative   # ordinal self-check (anchor, fix, evidence axes; aggregate = worst)
+self_check_axes:
+  anchor:    concrete|uncertain
+  fix:       concrete|uncertain
+  evidence:  concrete|uncertain
 problem:     "One-sentence statement of what is wrong."
 scenario:    "Concrete trigger: when X happens, Y is observed."
 suggested_fix: |
@@ -339,6 +361,29 @@ style nits to the brief — do not raise findings that contradict its rulings.
 Flag dead code, broken control flow, off-by-one, race conditions, missing
 error handling, and tests that assert the wrong observable. Do NOT raise
 security findings here — that is the `security` stage.
+
+Apply the four specialty lenses (zero tolerance for violations):
+
+(a) Silent-failure lens — every catch / try-except / .catch / fallback
+    code path must have a specific exception type, log-and-rethrow OR
+    log-and-surface OR justified swallow with comment. Bare catches and
+    silent fallbacks that hide failures from observability are blockers
+    in production paths.
+
+(b) Type-design four-axis lens (typed languages) — for newly-introduced
+    or substantially-modified types, classify each axis as `concrete` or
+    `uncertain`: encapsulation (invariants enforced through the type),
+    invariant expression (rules visible in shape), usefulness (compile-time
+    misuse becomes obvious), enforcement (no `as any` / unjustified casts).
+    Two `uncertain` axes = [major]; cast at a domain boundary = [major]
+    regardless.
+
+(c) Test-purpose lens — every test added or modified must answer
+    "what specific regression does this prevent". Tests asserting on
+    implementation detail = [major]; tests testing the mock = [blocker].
+
+(d) Specialty-lens detail lives in skills/lhc-review/SKILL.md
+    "Specialty lens checklist (Stage 2)". Apply it verbatim here.
 ```
 
 ### Stage focus — `security`
@@ -370,6 +415,58 @@ the standards brief or `wix-tool-surfaces.md`. Defer general code quality to
 the `quality` stage and security to the `security` stage. Do not raise nits
 that contradict the standards brief's applied rulings.
 ```
+
+### Stage focus — `simplify` (clarity-only polish lane)
+```
+Use the `code-simplifier` agent. Scope is the diff, not the codebase. Emit
+before/after blocks with `Behavior: preserved` for every suggestion. Three
+priorities: `keep` (materially better), `consider` (defensible alternative),
+`nit` (taste). Drop suggestions where Behavior is anything other than
+`preserved` — those are findings, not simplifications, and belong in the
+`quality` stage.
+
+Targets: nested ternaries, redundancy the diff introduced, misleading names,
+comments that restate the code, dense one-liners that the diff added. Do NOT
+flag duplication that pre-dates the diff. Do NOT propose changes to code the
+diff did not touch. Defer to the standards brief's Applied Rulings.
+
+Output is rendered as `## Simplification suggestions` — separate from
+`## Findings`. Severity does not apply (these are not defects).
+```
+
+### Adversarial overlay (applied when the orchestrator activates adversarial stance)
+
+When the auto-trigger rules above (or a same-turn user override) put the review in adversarial stance, prepend this block to every stage's prompt envelope. It does NOT replace the stage-focus paragraph — it changes the stance.
+
+```text
+Adversarial stance:
+You are reviewing this diff as a skeptic, not a checker. Your job is not to
+verify the implementation works — it is to question whether this is the right
+implementation at all.
+
+For each non-trivial choice in the diff, ask:
+- Why this approach and not the obvious alternative? Is the alternative cited
+  and rejected, or silently skipped?
+- What invariant or constraint makes this choice load-bearing? Is that
+  invariant actually true in the rest of the codebase?
+- What part of this design will be the first thing rewritten in 6 months?
+- Where does this diff add complexity that the problem did not require?
+- What edge case or failure mode is the author confident about that they
+  haven't actually tested?
+
+Surface findings as [major] when the design choice has a material downside the
+author appears to have missed, [minor] when there is a defensible alternative
+worth considering, and [nit] when it is a genuine matter of taste. Do NOT use
+[blocker] in adversarial mode unless the design choice causes incident-level
+harm — otherwise adversarial findings inflate severity past usefulness.
+
+Stick to the stage-focus paragraph for what to look for. Adversarial mode
+changes the stance; it does not authorize you to roam outside the stage's
+remit (e.g. don't raise security findings in the quality stage, even when
+adversarial).
+```
+
+Adversarial mode is borrowed from `openai/codex-plugin-cc`'s `adversarial-review` command. The auto-trigger rules above are LHC's decision policy: adversarial review is reserved for diffs where being wrong is expensive (security paths, public API contracts, large diffs without tests, claims of no-behavior-change with substantive logic changes) and is NOT applied by default — adversarial review on every PR creates noise.
 
 ## Tunings honored from the repo (priority order)
 
@@ -414,7 +511,7 @@ If the CI bot has already reviewed the PR, the skill still runs and prints a NOT
 - [ ] Repo tunings read in priority order (REVIEW.md > AGENTS.md > CLAUDE.md > .coderabbit.yaml > standards brief)
 - [ ] Plan attached when present; spec stage added if so
 - [ ] Stages dispatched in parallel; each subagent in a fresh context with the prompt envelope
-- [ ] Findings deduped, severity-floored, confidence-floored, self-reflection-scored (default drop ≤4)
+- [ ] Findings deduped, severity-floored, confidence-floored, self-check-classified (default drop `speculative`)
 - [ ] Counterpart peer-review of the merged review ran via `peer-review.sh --mode analysis`
 - [ ] Review route, Counterpart coverage, Counterpart failure recorded when applicable
 - [ ] Artifact saved at `~/.lhc/artifacts/pr-review-<slug>-<UTC-ISO>.md`

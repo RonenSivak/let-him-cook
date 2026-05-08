@@ -113,12 +113,36 @@ Use the taxonomy's source table to pick the minimum proving sources:
 
 6. **Synthesize** — the coordinating agent reconciles conflicts and writes the final answer.
 
+6a. **Per-claim self-check classification** — for each non-trivial claim in the answer (any sentence the user might cite or act on), apply the same three-axis ordinal self-check used by `lhc-pr-review` and `lhc-investigate`:
+   - **anchor** — does the cited source (doc URL, repo path, PR ref, datasource query) point at the right grounding passage? `concrete` | `uncertain`
+   - **inference** — is the claim faithful to the source, or does it generalize beyond what the source said? `concrete` | `uncertain`
+   - **corroboration** — does an independent source family (docs vs. repo prior art vs. RFC vs. live datasource) corroborate the claim? `concrete` | `uncertain`
+
+   Aggregate self-check is the WORST of the three axes: `verified` (all concrete) / `plausible` (one uncertain) / `speculative` (two or three uncertain). Claims with `self_check: speculative` are demoted to a `## Speculative claims` section in the artifact and excluded from any "recommendation" or "conclusion" answer-format. This forces the Iron Law ("NO CLAIM WITHOUT A SOURCE") to bite at the per-claim level rather than at the artifact level.
+
+6b. **Adversarial steelman pass — orchestrator decides whether to run.** The orchestrator (NOT the user) evaluates the auto-trigger rules below; if any rule fires, dispatch a fresh `Task(subagent_type="let-him-cook:repo-cartographer", prompt=<challenge-prompt>)` lane that ONLY tries to argue the OPPOSITE of the working answer:
+   - For each material claim, what would a senior engineer who disagrees say?
+   - What source would they cite? Is that source actually present in the repo / docs?
+   - What is the strongest version of the alternative — not the weakest?
+   - Where does the working answer over-generalize from a single example?
+
+   **Auto-trigger rules** — run the steelman lane when ANY of:
+   - intent label is `design_decision`, `rfc_review`, `compare_options`, `security_privacy_review`, `migration_upgrade`, `performance_optimization`, `ops_reliability`
+   - answer format is `recommendation`, `tradeoff table`, or `risk assessment`
+   - the working answer recommends ONE option among 2+ alternatives (recommendation questions are where being wrong is most expensive)
+   - the question's domain involves security, privacy, money, data integrity, or rollout-irreversible migrations
+   - all corroboration evidence comes from the SAME source family (e.g. only docs-schema, or only octocode) — single-family corroboration is brittle, steelman from a different angle catches it
+
+   **User override (natural language only).** "Skip the steelman" / "don't argue the other side" → orchestrator records the quote and skips. "Steelman this" / "what's the counter-argument" → orchestrator forces the lane and records the quote. No CLI flag.
+
+   Returns at most three steelman counter-claims, each with: cited source, the version of the working answer it contradicts, and a one-line resolution (which is right and why, OR "both partially correct, qualify the working answer"). Steelmans that are themselves `speculative` are dropped. Pattern borrowed from `openai/codex-plugin-cc`'s adversarial-review stance, applied to research conclusions rather than diffs.
+
 7. **Confidence gate** — before assigning `Confidence`, apply the research ladder from `../shared/confidence-escalation-policy.md`:
    - For `high`, record the primary source and an independent supporting source, or record that the negative search exhausted the relevant source families.
    - For `medium` or `low`, add an Exhaustion Ledger naming each source/tool/query/path tried, its result, blocked paths, contradictions, and the next evidence that would raise confidence.
    - Do not use the lower label as a shortcut for an incomplete first pass.
 
-8. **Save artifact** at `~/.lhc/artifacts/research-<slug>-<UTC-ISO>.md`. Include question, intent fields, answer, evidence with links + one-line quote per claim, caveats, and an explicit "not verified" list for anything that could not be grounded.
+8. **Save artifact** at `~/.lhc/artifacts/research-<slug>-<UTC-ISO>.md`. Include question, intent fields, answer, evidence with links + one-line quote per claim, **per-claim self-check classification** (anchor / inference / corroboration axes plus aggregate `verified` | `plausible` | `speculative`), **speculative claims** demoted out of the main answer (separate section), **steelman counter-claims** (when the orchestrator ran the steelman lane — each with cited source and resolution; otherwise `Challenge stance: skipped (<auto-trigger reason or user override>)` with the orchestrator's reasoning), caveats, and an explicit "not verified" list for anything that could not be grounded.
 
    Required intent fields:
    ```
@@ -166,6 +190,8 @@ Use the taxonomy's source table to pick the minimum proving sources:
 - [ ] Intent label and answer format included in the terminal handoff
 - [ ] At least one internal source cited (docs-schema or octocode) when the question is Wix-specific
 - [ ] Quoted passages per claim where available
+- [ ] Each non-trivial claim has a per-claim self-check classification (anchor / inference / corroboration); `speculative` claims are demoted out of the main answer
+- [ ] Challenge stance recorded in the artifact (either ran with steelman counter-claims, or skipped with the orchestrator's reasoning)
 - [ ] Caveats and "not verified" items explicit
 - [ ] Confidence policy applied; `medium` or `low` includes an Exhaustion Ledger and next evidence
 - [ ] No source file was modified

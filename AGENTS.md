@@ -58,6 +58,7 @@ Generic roles:
 - `planner`
 - `architect`
 - `code-reviewer`
+- `code-simplifier` — clarity-focused suggestions on recently-modified code; read-only, never applies edits
 - `debugger`
 - `executor`
 - `verifier`
@@ -87,8 +88,9 @@ Preferred LHC surfaces:
 - `lhc-investigate` — production RCA with multi-surface correlation and bug-symptom classification.
 - `lhc-build-fix` — classifies failing builds, CI, releases, rollouts, and related bug shape.
 - `lhc-research` — source-backed programmer research by intent: internal patterns, prior art, codebase understanding, tradeoffs, and recommendations.
-- `lhc-review` — counterpart peer-review gate; saves verdict.
-- `lhc-pr-review` — on-demand GitHub PR review; staged spec/quality/security passes, chat-only output (read-only, no posting), complements the CI-side `@wix/ai-code-reviewer`.
+- `lhc-review` — counterpart peer-review gate; saves verdict. Stage 2 includes specialty lenses (silent-failure, type-design four-axis, test-purpose) ported from `anthropics/claude-plugins-official` pr-review-toolkit.
+- `lhc-pr-review` — on-demand GitHub PR review; staged spec/quality/security passes, chat-only output (read-only, no posting), complements the CI-side `@wix/ai-code-reviewer`. Findings use ordinal classification (severity + confidence + self-check `verified`/`plausible`/`speculative`) — LLMs calibrate categories more reliably than 0–100 numeric scores. Optional `--adversarial` flag for design-pressure stance.
+- `lhc-claude-md` — audits CLAUDE.md / AGENTS.md / .claude.local.md / package-level memory files against a weighted rubric and proposes targeted diffs. Read-only by default; never edits memory files without explicit same-turn user approval.
 </skill_catalog>
 
 <verification>
@@ -155,7 +157,11 @@ Skip trailers for typo-only or formatting-only commits.
 Disable LHC enforcement when the user needs vanilla Codex:
 
 - `DISABLE_LHC=1` — treat LHC as absent. Hooks return `{}`; skills are not auto-invoked.
-- `LHC_SKIP_HOOKS=<csv>` — disable named hooks only (e.g. `precompact,stop`).
+- `LHC_SKIP_HOOKS=<csv>` — disable named hooks only (e.g. `precompact,stop,stop-review-gate`).
+
+Opt-in toggles (default OFF):
+
+- `LHC_STOP_REVIEW_GATE=1` — enable [scripts/stop-review-gate.sh](scripts/stop-review-gate.sh), an optional Stop hook that runs counterpart adversarial review (via `peer-review.sh`) on the working-tree diff before letting the session end. Pattern borrowed from `openai/codex-plugin-cc`'s stop-gate hook; folded into LHC instead of as a standalone plugin so it reuses the existing peer-review bridge and verdict envelope. Not auto-wired into `hooks.json` — users add it to their settings.json Stop hooks if they want it active. Adversarial review takes 30–180s, so leaving it off by default is intentional.
 
 Surface the kill switches when the user repeatedly fights the read-only defaults or asks how to turn LHC off.
 </kill_switches>

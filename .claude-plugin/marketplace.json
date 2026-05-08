@@ -11,7 +11,7 @@
     {
       "name": "let-him-cook",
       "description": "Home-local Claude Code plugin for Wix internal engineering workflows — readiness gating, read-only governance, peer-reviewed investigations, research, build triage, and planning.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Ronensi",
         "email": "ronensi@wix.com"

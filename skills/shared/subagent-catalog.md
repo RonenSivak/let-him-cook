@@ -11,6 +11,7 @@ Model pinning is enforced by each agent's frontmatter. Do not override the tier 
 | `planner` | opus | `agents/planner.md` | Turn a request into a bounded, testable plan with acceptance criteria. |
 | `architect` | opus | `agents/architect.md` | System boundaries, interfaces, tradeoffs, failure modes. |
 | `code-reviewer` | opus | `agents/code-reviewer.md` | Correctness, maintainability, regression risk on a diff. |
+| `code-simplifier` | opus | `agents/code-simplifier.md` | Clarity-focused suggestions on recently-modified code; read-only — emits before/after blocks, never applies edits. Pairs after `lhc-ralph` as an optional polish lane. |
 | `debugger` | sonnet | `agents/debugger.md` | Root-cause isolation before any fix is proposed. |
 | `executor` | sonnet | `agents/executor.md` | Bounded implementation with smallest diff that matches the plan. |
 | `verifier` | sonnet | `agents/verifier.md` | Fresh-evidence verification of a completion claim. |
